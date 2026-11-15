@@ -1,20 +1,22 @@
-# SpecWatson: High-Resolution Electronic Rovibronic Spectroscopy Suite
+# MELIORA: High-Resolution Electronic Rovibronic Spectroscopy Suite
+### Molecular Electronic & Laser Interactions with Optimized Ro-vibronic Analysis (v2.0)
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Desarrollo de Software para el Análisis y Ajuste de Espectros Electrónicos de Alta Resolución con Resolución Rotacional**  
-*Tesis de Licenciatura / Posgrado en Ciencias e Ingenierías*  
-**Autor:** Miguel Díaz  
-**Director:** Dr. Leonardo Álvarez Valtierra  
-**Institución:** Laboratorio de Espectroscopía Molecular, División de Ciencias e Ingenierías (Campus León), Universidad de Guanajuato  
+*Tesis de Maestría en Ciencias Aplicadas*  
+**Autor:** Ing. Miguel Alejandro Díaz Gaytán  
+**Directores:** Dr. Leonardo Álvarez-Valtierra & Dr. Mario Ulises Delgado-Jaime  
+**Institución:** División de Ciencias e Ingenierías (Campus León), Universidad de Guanajuato  
+**Agradecimientos:** Apoyo del programa de Ayudantía de Investigador SNII Nivel III del Dr. Alejandro Gil-Villegas Montiel  
 
 ---
 
 ## 🌐 Presentación Web Interactiva & Artículos Científicos
 
 * **Sitio Web de Presentación (Optimizado para Móviles Android & PC):**  
-  👉 **[https://mgueldiaz10-oss.github.io/specwatson/](https://mgueldiaz10-oss.github.io/specwatson/)**
+  👉 **[https://alejandrodiazgaytan.github.io/meliora/](https://alejandrodiazgaytan.github.io/meliora/)**
 * **Artículos Científicos Completos (Formato JCP / PCCP, 4 páginas c/u):**
   * **Artículo 1 (Metodológico):** [Español (PDF)](papers/articulo_carbazol_es.pdf) · [Inglés (PDF)](papers/articulo_carbazol_en.pdf)
   * **Artículo 2 (trans-Resveratrol):** [Español (PDF)](papers/articulo_resveratrol_es.pdf) · [Inglés (PDF)](papers/articulo_resveratrol_en.pdf)

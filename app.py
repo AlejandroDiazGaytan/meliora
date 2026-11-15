@@ -2351,7 +2351,7 @@ def build_gradio_app():
                     Si utilizas **MELIORA** en tu tesis, reporte técnico o artículo de investigación, por favor cita:
 
                     **Formato Estándar (JCP / ACS):**  
-                    Díaz-Gaytán, M. A.; Álvarez-Valtierra, L.; Delgado-Jaime, M. U. *MELIORA: Molecular Electronic & Laser Interactions with Optimized Ro-vibronic Analysis (v2.0)*; División de Ciencias e Ingenierías, Universidad de Guanajuato, 2026. Disponible en: https://github.com/mgueldiaz10-oss/specwatson
+                    Díaz-Gaytán, M. A.; Álvarez-Valtierra, L.; Delgado-Jaime, M. U. *MELIORA: Molecular Electronic & Laser Interactions with Optimized Ro-vibronic Analysis (v2.0)*; División de Ciencias e Ingenierías, Universidad de Guanajuato, 2026. Disponible en: https://github.com/AlejandroDiazGaytan/meliora
 
                     **Formato BibTeX:**
                     ```bibtex
@@ -2361,7 +2361,7 @@ def build_gradio_app():
                       year         = {2026},
                       version      = {2.0},
                       publisher    = {División de Ciencias e Ingenierías, Universidad de Guanajuato},
-                      url          = {https://github.com/mgueldiaz10-oss/specwatson}
+                      url          = {https://github.com/AlejandroDiazGaytan/meliora}
                     }
                     ```
 
