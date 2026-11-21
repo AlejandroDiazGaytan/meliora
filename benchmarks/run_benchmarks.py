@@ -170,7 +170,7 @@ def generate_publication_figures(j_acc, max_errs, j_speed, t_f, t_w, speedup):
     st_y /= np.max(st_y)
 
     ax.vlines(st_x, 0, st_y, color='#e74c3c', alpha=0.45, lw=0.9, label='Individual Rovibronic Transitions (Stick)')
-    ax.plot(rel_x, y_v, color='#1f497d', lw=1.6, label=r'Voigt Convolution ($\Gamma = 25\text{ MHz}, \eta_L = 0.35$)')
+    ax.plot(rel_x, y_v, color='#1f497d', lw=1.6, label=r'Voigt Convolution ($\Gamma = 25\mathrm{ MHz}, \eta_L = 0.35$)')
     ax.plot(rel_x, y_g, color='#f39c12', lw=1.2, linestyle='--', label=r'Pure Gaussian Instrumental Limit')
 
     ax.set_title(r'Synthetic $S_1 \leftarrow S_0$ Rotationally Resolved Electronic Spectrum (Carbazole)', fontsize=12, fontweight='bold')
