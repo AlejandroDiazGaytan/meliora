@@ -164,10 +164,10 @@ def run_resveratrol_investigation():
 
     fig2, ax = plt.subplots(figsize=(10.5, 4.8), dpi=300)
     ax.vlines(st_x, 0, st_y, color='#e74c3c', alpha=0.45, lw=0.8, label='Individual Rovibronic Transitions (Stick)')
-    ax.plot(rel_x, y_v, color='#1f497d', lw=1.6, label=r'Voigt Convolution ($\Gamma = 20\text{ MHz}, \eta_L = 0.35$)')
+    ax.plot(rel_x, y_v, color='#1f497d', lw=1.6, label=r'Voigt Convolution ($\Gamma = 20\mathrm{ MHz}, \eta_L = 0.35$)')
     ax.plot(rel_x, y_g, color='#f39c12', lw=1.2, linestyle='--', label='Gaussian Limit')
 
-    ax.set_title(r'Synthetic Rotationally Resolved $S_1 \leftarrow S_0$ Band of *trans*-Resveratrol ($T_{rot} = 2.5\text{ K}$)', fontsize=12, fontweight='bold')
+    ax.set_title(r'Synthetic Rotationally Resolved $S_1 \leftarrow S_0$ Band of *trans*-Resveratrol ($T_{rot} = 2.5\mathrm{ K}$)', fontsize=12, fontweight='bold')
     ax.set_xlabel(r'Relative Laser Frequency $\nu - \nu_0$ (MHz)', fontsize=11, fontweight='bold')
     ax.set_ylabel('Normalized Fluorescence Intensity', fontsize=11, fontweight='bold')
     ax.legend(frameon=True, facecolor='white', loc='upper right')
