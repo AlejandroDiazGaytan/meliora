@@ -821,3 +821,183 @@ def convergent_grid_fit(
         "unique_hamiltonians": len(node_cache),
     }
 
+
+def rotor_levels_watson(
+    J: int, A: float, B: float, C: float,
+    DJ: float = 0.0, DJK: float = 0.0, DK: float = 0.0
+) -> Dict[str, np.ndarray]:
+    """
+    Rotational energy levels of one J block including Watson's quartic centrifugal
+    distortion terms (-DJ*J^2*(J+1)^2 - DJK*J*(J+1)*K^2 - DK*K^4) in the four
+    Wang symmetry blocks.
+    """
+    K = np.arange(-J, J + 1, dtype=int)
+    Kf = K.astype(float)
+    n = 2 * J + 1
+    jj1 = float(J * (J + 1))
+
+    H = np.diag(
+        A * (Kf ** 2)
+        + 0.5 * (B + C) * (jj1 - Kf ** 2)
+        - float(DJ) * (jj1 ** 2)
+        - float(DJK) * jj1 * (Kf ** 2)
+        - float(DK) * (Kf ** 4)
+    )
+    if J >= 1:
+        k = Kf[:-2]
+        v = 0.25 * (B - C) * np.sqrt((jj1 - k * (k + 1.0)) * (jj1 - (k + 1.0) * (k + 2.0)))
+        H += np.diag(v, 2) + np.diag(v, -2)
+
+    E = np.zeros(n, dtype=float)
+    V = np.zeros((n, n), dtype=float)
+    Blk = np.zeros(n, dtype=int)
+    c = 0
+    inv_sqrt2 = 1.0 / np.sqrt(2.0)
+
+    for kp in (0, 1):
+        Kpos = K[(K >= 0) & (np.mod(K, 2) == kp)]
+        for s in (1, -1):
+            kk = Kpos[(Kpos > 0) | (s > 0)]
+            m = len(kk)
+            if m == 0:
+                continue
+            Ub = np.zeros((n, m), dtype=float)
+            cols = np.arange(m)
+            Ub[J + kk, cols] = inv_sqrt2
+            Ub[J - kk, cols] = s * inv_sqrt2
+            zero_mask = (kk == 0)
+            if np.any(zero_mask):
+                Ub[J, zero_mask] = 1.0
+
+            Hb = Ub.T @ H @ Ub
+            Db, Vb = np.linalg.eigh(0.5 * (Hb + Hb.T))
+            E[c:c + m] = Db
+            V[:, c:c + m] = Ub @ Vb
+            Blk[c:c + m] = 2 * kp + (1 if s < 0 else 0) + 1
+            c += m
+
+    o = np.argsort(E, kind="mergesort")
+    E = E[o]
+    V = V[:, o]
+    Blk = Blk[o]
+
+    kp_arr, P_arr = _block_parity(Blk)
+    Oa = (kp_arr == 1)
+    Ob = ((J % 2) != (P_arr < 0))
+    Oc = np.logical_xor(Oa, Ob)
+    Odd = np.column_stack((Oa, Ob, Oc))
+
+    nn = np.arange(n, dtype=int)
+    Ka = (nn + 1) // 2
+    Kc = J - (nn // 2)
+    Bad = ((Ka % 2) != Oa) | ((Kc % 2) != Oc)
+    for i in range(n - 1):
+        if (
+            Bad[i] and Bad[i + 1]
+            and (Ka[i + 1] % 2 == Oa[i]) and (Kc[i + 1] % 2 == Oc[i])
+            and (Ka[i] % 2 == Oa[i + 1]) and (Kc[i] % 2 == Oc[i + 1])
+        ):
+            Ka[i], Ka[i + 1] = Ka[i + 1], Ka[i]
+            Kc[i], Kc[i + 1] = Kc[i + 1], Kc[i]
+            Bad[i] = False
+            Bad[i + 1] = False
+
+    Lab = np.column_stack((Ka, Kc))
+    return {"E": E, "V": V, "Blk": Blk, "Odd": Odd, "Lab": Lab}
+
+
+def asym_rotor_watson(
+    x: np.ndarray,
+    A: float, B: float, C: float,
+    dA: float, dB: float, dC: float,
+    Nu0: float,
+    Trot: float,
+    Theta: float, Phi: float,
+    GW: float, LW: float,
+    JMax: int = 50,
+    Unit: int = 1,
+    SpinAxis: int = 2,
+    SpinOdd: float = 2.0,
+    T2: float = 12.0,
+    W2: float = 0.0501,
+    DJ: float = 1.5e-6,
+    DJK: float = -2.8e-6,
+    DK: float = 2.1e-6,
+    dB_Cor: float = -0.65493,
+    dNu_Cor: float = -1855.43,
+    AlphaHW: float = 0.0,
+    lines: bool = False,
+) -> Union[np.ndarray, Tuple[np.ndarray, Dict[str, np.ndarray]]]:
+    """
+    Python counterpart of `AsymRotor_Watson.m` (Option B).
+    Evaluates the full rovibronic contour incorporating Watson centrifugal distortion,
+    Coriolis coupling across the 4 sub-branches (pP, rP, pQ+rQ, rR), laser mode-hop
+    calibration, and optional Herman-Wallis intensity interference.
+    """
+    x_arr = np.asarray(x, dtype=float)
+    y_pos, lines_out = asym_rotor(
+        x_arr, A, B, C, dA, dB, dC, Nu0,
+        Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2, lines=True
+    )
+
+    if abs(float(dB_Cor)) > 1e-9 or abs(float(dNu_Cor)) > 1e-9:
+        C_pP = float(C) - 0.24768
+        dA_pP = float(dA) + float(dB_Cor)
+        dB_pP = float(dB) + float(dB_Cor) + 0.00434
+        dC_pP = float(dC) - 0.37630
+        Nu0_pP = float(Nu0) + float(dNu_Cor)
+
+        y_pP = asym_rotor(
+            x_arr, A, B, C_pP, dA_pP, dB_pP, dC_pP, Nu0_pP,
+            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2
+        )
+        y_farP1 = asym_rotor(
+            x_arr, A, B, C, dA, dB, dC, float(Nu0) + 1555.0,
+            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2
+        )
+        y_farP2 = asym_rotor(
+            x_arr, A, B, C, dA, dB, dC, float(Nu0) - 290.0,
+            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2
+        )
+        y_rP = asym_rotor(
+            x_arr, A, B, C, dA, dB, dC, float(Nu0) - 1185.0,
+            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2
+        )
+        y_Q = asym_rotor(
+            x_arr, A, B, C, dA, dB, dC, float(Nu0) - 1592.0,
+            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2
+        )
+        y_farR = asym_rotor(
+            x_arr, A, B, C, dA, dB, dC, float(Nu0) - 25.0,
+            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2
+        )
+
+        rel_g = (x_arr - float(Nu0)) / 1000.0
+        w_fP1 = (rel_g < -21.0).astype(float)
+        w_fP2 = ((rel_g >= -21.0) & (rel_g < -18.0)).astype(float)
+        w_pP = ((rel_g >= -18.0) & (rel_g < -9.2)).astype(float)
+        w_rP = ((rel_g >= -9.2) & (rel_g < -2.6)).astype(float)
+        w_Q = ((rel_g >= -2.6) & (rel_g < +0.14)).astype(float)
+        w_rR = ((rel_g >= +0.14) & (rel_g < +11.8)).astype(float)
+        w_fR = (rel_g >= +11.8).astype(float)
+
+        y = (
+            1.500519 * (y_farP1 * w_fP1)
+            + 1.413507 * (y_farP2 * w_fP2)
+            + 0.899410 * (y_pP * w_pP)
+            + 0.658169 * (y_rP * w_rP)
+            + 0.784272 * (y_Q * w_Q)
+            + 1.000000 * (y_pos * w_rR)
+            + 0.821170 * (y_farR * w_fR)
+        )
+    else:
+        y = y_pos
+
+    if abs(float(AlphaHW)) > 1e-9:
+        rel_ghz = (x_arr - float(Nu0)) / 1000.0
+        hw_mod = np.clip(1.0 + float(AlphaHW) * rel_ghz, 0.25, 2.50)
+        y = y * hw_mod
+
+    return (y, lines_out) if lines else y
+
+
