@@ -223,7 +223,7 @@ legend('Exp (pmt-nFLa)', ...
        'Switch Fermi-Dirac (x = a)', 'Location', 'northeast');
 xlim([min(x_exp), max(x_exp)]);
 ylim([0.12, max(y_exp)*1.10]);
-grid on; box on;
+grid on; box on; set(gca, 'Color', 'w', 'XColor', 'k', 'YColor', 'k', 'GridColor', [0.8 0.8 0.8], 'GridAlpha', 0.6);
 
 subplot(3, 1, 2);
 plot(x_exp(m_P), y_exp(m_P), '.k', 'MarkerSize', 6); hold on;
@@ -235,7 +235,7 @@ title(sprintf('Mejora en Rama P (x < a): 1 Copia (r = %.2f%%) vs 2 Copias Fermi-
 legend('Exp Rama P', '1 Copia (Desfasada en P)', '2 Copias (Copia 1 activa)', 'Location', 'northwest');
 xlim([min(x_exp(m_P)), max(x_exp(m_P))]);
 ylim([0.12, max(y_exp(m_P))*1.10]);
-grid on; box on;
+grid on; box on; set(gca, 'Color', 'w', 'XColor', 'k', 'YColor', 'k', 'GridColor', [0.8 0.8 0.8], 'GridAlpha', 0.6);
 
 subplot(3, 1, 3);
 plot(x_exp, resid_dual, '-r', 'LineWidth', 0.8); hold on;
@@ -246,7 +246,7 @@ ylabel('Residual');
 title(sprintf('Residuales Modelo 2 Copias Fermi-Dirac (RMS = %.4f, SSE = %.2f)', rms_dual, sse_dual));
 xlim([min(x_exp), max(x_exp)]);
 ylim([-0.45, 0.45]);
-grid on; box on;
+grid on; box on; set(gca, 'Color', 'w', 'XColor', 'k', 'YColor', 'k', 'GridColor', [0.8 0.8 0.8], 'GridAlpha', 0.6);
 
 % Figura 2: Comparativa BGridC ScoreSolver = false vs ScoreSolver = true (Seed = 1)
 figure('Name', 'Comparativa BGridC: ScoreSolver false vs true (Seed = 1)', ...
@@ -261,7 +261,7 @@ title(sprintf('BGridC (ScoreSolver = false, Seed = 1 | Solo SSE): Amplitud depri
 legend('Exp (pmt-nFLa)', 'ScoreSolver = false (Solo SSE)', 'Location', 'northeast');
 xlim([min(x_exp), max(x_exp)]);
 ylim([0.12, max(y_exp)*1.08]);
-grid on; box on;
+grid on; box on; set(gca, 'Color', 'w', 'XColor', 'k', 'YColor', 'k', 'GridColor', [0.8 0.8 0.8], 'GridAlpha', 0.6);
 
 subplot(2, 1, 2);
 plot(x_exp, y_exp, '.k', 'MarkerSize', 5); hold on;
@@ -273,9 +273,10 @@ title(sprintf('BGridC (ScoreSolver = true, Seed = 1 | SSE + Shape Weight): I_1 =
 legend('Exp (pmt-nFLa)', 'ScoreSolver = true (SSE + Correlacion de Forma)', 'Location', 'northeast');
 xlim([min(x_exp), max(x_exp)]);
 ylim([0.12, max(y_exp)*1.08]);
-grid on; box on;
+grid on; box on; set(gca, 'Color', 'w', 'XColor', 'k', 'YColor', 'k', 'GridColor', [0.8 0.8 0.8], 'GridAlpha', 0.6);
 
 results = struct('r_sse_false', r_sse_false, 'r_single_true', r_single, ...
                  'r_dual_global', r_G_2comp, 'r_P_1comp', r_P_1comp, ...
                  'r_P_2comp', r_P_2comp, 'r_R_2comp', r_R_2comp);
 end
+

@@ -154,7 +154,7 @@ legend('Exp (pmt-nFLa, 1423 pts)', sprintf('AsymRotor\\_Watson (r = %.2f%%, Cos 
        'Origen Nu_0', 'Location', 'northeast');
 xlim([min(rel_ghz), max(rel_ghz)]);
 ylim([0.13, max(y_exp)*1.12]);
-grid on; box on;
+grid on; box on; set(gca, 'Color', 'w', 'XColor', 'k', 'YColor', 'k', 'GridColor', [0.8 0.8 0.8], 'GridAlpha', 0.6);
 
 subplot(3, 4, 5:8);
 plot(rel_ghz, resid_w, '-r', 'LineWidth', 0.8); hold on;
@@ -166,7 +166,7 @@ title(sprintf('Residuales Globales (Exp - AsymRotor\\_Watson | RMS = %.4f, SSE =
       rms_wat, sse_wat, sse_rig));
 xlim([min(rel_ghz), max(rel_ghz)]);
 ylim([-0.42, 0.42]);
-grid on; box on;
+grid on; box on; set(gca, 'Color', 'w', 'XColor', 'k', 'YColor', 'k', 'GridColor', [0.8 0.8 0.8], 'GridAlpha', 0.6);
 
 winMasks  = {m_P_out, m_P_in, m_Q_win, m_R_hi};
 winTitles = {'1) Sub-rama pP (-15 a -12 GHz)', ...
@@ -197,7 +197,7 @@ for k = 1:4
     end
     xlim([min(xw), max(xw)]);
     ylim([0.14, max([ye; yw])*1.15]);
-    grid on; box on;
+    grid on; box on; set(gca, 'Color', 'w', 'XColor', 'k', 'YColor', 'k', 'GridColor', [0.8 0.8 0.8], 'GridAlpha', 0.6);
 end
 
 % =========================================================================
@@ -234,7 +234,7 @@ for k = 1:4
     end
     xlim([min(xw), max(xw)]);
     ylim([0.14, max([ye; yw])*1.15]);
-    grid on; box on;
+    grid on; box on; set(gca, 'Color', 'w', 'XColor', 'k', 'YColor', 'k', 'GridColor', [0.8 0.8 0.8], 'GridAlpha', 0.6);
 end
 
 stats = struct('r_global', r_G_wat, 'cos_global', cos_wat, ...
@@ -251,3 +251,4 @@ ye0 = max(0, ye - c_off);
 ys0 = max(0, ys - c_off);
 cos_val = dot(ye0, ys0) / (norm(ye0) * norm(ys0) + 1e-12);
 end
+

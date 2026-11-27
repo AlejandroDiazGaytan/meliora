@@ -28,7 +28,13 @@ from specwatson.transitions import RovibronicTransitionCalculator, WAVENUMBER_TO
 from specwatson.spectrum import SpectrumSimulator
 from specwatson.fitting import ContourFitter
 from specwatson.io_parsers import parse_spectrometer_file, auto_assign_spectrometer_lines, render_jb95_workstation_html
-from specwatson.asymrotor import asym_rotor, planar_top_c, ray_kappa, convergent_grid_fit
+from specwatson.asymrotor import (
+    asym_rotor,
+    asym_rotor_watson,
+    planar_top_c,
+    ray_kappa,
+    convergent_grid_fit
+)
 from specwatson.quantum_chem import (
     MOLECULE_CATALOG,
     EXPERIMENTAL_LITERATURE_DB,
@@ -63,58 +69,58 @@ ASG_BAND_TYPE_CHOICES = [
 
 # Hamiltonian Model choices
 HAMILTONIAN_CHOICES = [
-    "Rotor Rígido Puro (3 constantes: A, B, C | ΔJ = ΔJK = ΔK = δJ = δK = 0 — Método JB95 / Carbazol)",
-    "Hamiltoniano de Watson Reducción A (Rotor Rígido + Distorsión Centrífuga Cuártica)",
+    "Rotor Rígido Puro (A, B, C | ΔJ = ΔJK = ΔK = δJ = δK = 0)",
+    "Hamiltoniano de Watson (Reducción A: Distorsión Centrífuga Cuártica) + Efecto de Coriolis (C_eff, ζ_eff)",
 ]
 
 # Experimental Reference Source choices
 EXP_SOURCE_CHOICES = [
-    "📡 Espectrómetro Real: PmtFla (Fluorescencia LIF Carbazol - Dr. Leonardo)",
-    "📡 Espectrómetro Real: pmt-nFLa (Fluorescencia LIF Trifenileno - Dr. Leonardo & Dr. Mario)",
-    "📄 Ajuste JB95 Real: IAR.asc (2,705 líneas Tipo B Carbazol - Dr. Leonardo)",
-    "📚 Referencia de Literatura del Sistema Molecular Seleccionado",
-    "📤 Archivo Propio Subido (.asc, PmtFla, .dat, .txt, .csv)",
+    "Datos Experimentales: PmtFla (Carbazol)",
+    "Datos Experimentales: pmt-nFLa (Trifenileno)",
+    "Líneas Asignadas: IAR.asc (Carbazol)",
+    "Referencia Teórica del Sistema Seleccionado",
+    "Archivo Subido (.asc, PmtFla, .dat, .txt, .csv)",
 ]
 
-# Pre-configured molecular presets for Tab 1 (Aromatics + Simple HITRAN/JPL Standards)
+# Pre-configured molecular presets for Tab 1
 PRESETS = {
-    "Carbazol (Álvarez-Valtierra & Pratt 2006 | Datos Reales PmtFla & IAR.asc)": {
+    "Trifenileno (C18H12 — Rotor Oblato D3h | pmt-nFLa)": {
+        "A0": 506.8885, "B0": 506.4470, "C0": 279.8420,
+        "A1": 503.7935, "B1": 503.3475, "C1": 278.3808,
+        "origin_mhz": 910239915.19,
+        "Trot": 3.04, "fwhm": 31.53,
+        "mu_a": 0.50, "mu_b": 0.50, "mu_c": 0.0,
+        "band_mode": BAND_TYPE_CHOICES[3],
+        "ham_mode": HAMILTONIAN_CHOICES[1],
+        "exp_source": EXP_SOURCE_CHOICES[1],
+        "Jmax": 32,
+        "ref": "Espectro LIF pmt-nFLa (C_eff = 279.8420 MHz, ζ_eff = +0.1046)"
+    },
+    "Carbazol (C12H9N — Simetría C2v | PmtFla & IAR.asc)": {
         "A0": 2253.2409, "B0": 594.2103, "C0": 470.3670,
         "A1": 2250.6104, "B1": 586.3482, "C1": 465.2923,
         "origin_mhz": 923604613.0295,
         "Trot": 2.6, "fwhm": 45.0,
         "mu_a": 0.0, "mu_b": 1.0, "mu_c": 0.0,
-        "band_mode": BAND_TYPE_CHOICES[0],       # Tipo b Puro
-        "ham_mode": HAMILTONIAN_CHOICES[0],      # Rotor Rígido Puro
-        "exp_source": EXP_SOURCE_CHOICES[0],     # PmtFla real
-        "Jmax": 22,
-        "ref": "Álvarez-Valtierra & Pratt, J. Chem. Phys. 125, 244309 (2006) | Datos Espectrómetro PmtFla / IAR.asc"
-    },
-    "Trifenileno (C18H12 — Rotor Simétrico Oblato Plano D3h | Datos Reales pmt-nFLa)": {
-        "A0": 506.8885, "B0": 506.4470, "C0": 279.8420,
-        "A1": 503.7935, "B1": 503.3475, "C1": 278.3808,
-        "origin_mhz": 910239915.19,
-        "Trot": 3.0, "fwhm": 32.0,
-        "mu_a": 0.50, "mu_b": 0.50, "mu_c": 0.0,
-        "band_mode": BAND_TYPE_CHOICES[3],       # Banda Híbrida E' (a+b en el plano)
+        "band_mode": BAND_TYPE_CHOICES[0],
         "ham_mode": HAMILTONIAN_CHOICES[0],
-        "exp_source": EXP_SOURCE_CHOICES[1],
-        "Jmax": 32,
-        "ref": "Datos Espectrómetro pmt-nFLa (Delgado-Jaime & Álvarez-Valtierra) — Óptimo Global FFT-DE + Acople Coriolis (C_eff = 279.84 MHz, ζ_eff = +0.1047)"
+        "exp_source": EXP_SOURCE_CHOICES[0],
+        "Jmax": 22,
+        "ref": "Datos LIF PmtFla / IAR.asc"
     },
-    "trans-Resveratrol (Polifenol - Confórmero I Plano)": {
+    "trans-Resveratrol (Confórmero I Plano)": {
         "A0": 1684.50, "B0": 218.40, "C0": 193.35,
         "A1": 1652.10, "B1": 216.85, "C1": 191.80,
         "origin_mhz": 30000.0 * WAVENUMBER_TO_MHZ,
         "Trot": 3.0, "fwhm": 18.0,
         "mu_a": 0.82, "mu_b": 0.18, "mu_c": 0.0,
-        "band_mode": BAND_TYPE_CHOICES[3],       # Híbrida a/b
+        "band_mode": BAND_TYPE_CHOICES[3],
         "ham_mode": HAMILTONIAN_CHOICES[0],
-        "exp_source": EXP_SOURCE_CHOICES[2],
+        "exp_source": EXP_SOURCE_CHOICES[3],
         "Jmax": 14,
-        "ref": "Estudio DFT/Watson Confórmero I Planar (DCI-UG)"
+        "ref": "Modelo DFT/Watson Confórmero I Planar"
     },
-    "trans-Resveratrol (Polifenol - Confórmero II Torsional)": {
+    "trans-Resveratrol (Confórmero II Torsional)": {
         "A0": 1592.30, "B0": 229.15, "C0": 204.80,
         "A1": 1564.80, "B1": 227.40, "C1": 203.10,
         "origin_mhz": 30000.0 * WAVENUMBER_TO_MHZ,
@@ -122,11 +128,11 @@ PRESETS = {
         "mu_a": 0.65, "mu_b": 0.25, "mu_c": 0.10,
         "band_mode": BAND_TYPE_CHOICES[3],
         "ham_mode": HAMILTONIAN_CHOICES[0],
-        "exp_source": EXP_SOURCE_CHOICES[2],
+        "exp_source": EXP_SOURCE_CHOICES[3],
         "Jmax": 14,
-        "ref": "Estudio DFT/Watson Confórmero II No-Planar (DCI-UG)"
+        "ref": "Modelo DFT/Watson Confórmero II No-Planar"
     },
-    "Indol (Cromóforo del Triptófano | Caminati & Pratt)": {
+    "Indol (C8H7N — Banda Híbrida a/b)": {
         "A0": 3877.80, "B0": 1636.00, "C0": 1150.90,
         "A1": 3743.00, "B1": 1616.00, "C1": 1129.00,
         "origin_mhz": 30000.0 * WAVENUMBER_TO_MHZ,
@@ -134,11 +140,11 @@ PRESETS = {
         "mu_a": 0.62, "mu_b": 0.38, "mu_c": 0.0,
         "band_mode": BAND_TYPE_CHOICES[3],
         "ham_mode": HAMILTONIAN_CHOICES[0],
-        "exp_source": EXP_SOURCE_CHOICES[2],
+        "exp_source": EXP_SOURCE_CHOICES[3],
         "Jmax": 12,
-        "ref": "Berden, Meerts & Pratt, Chem. Phys. Lett. (1994)"
+        "ref": "Referencia Experimental LIF"
     },
-    "1-Naftol (Banda Híbrida a/b | Johnson & Pratt 1990)": {
+    "1-Naftol (C10H8O — Banda Híbrida a/b)": {
         "A0": 1948.50, "B0": 1132.40, "C0": 716.20,
         "A1": 1912.10, "B1": 1118.80, "C1": 706.50,
         "origin_mhz": 30000.0 * WAVENUMBER_TO_MHZ,
@@ -146,23 +152,23 @@ PRESETS = {
         "mu_a": 0.60, "mu_b": 0.40, "mu_c": 0.0,
         "band_mode": BAND_TYPE_CHOICES[3],
         "ham_mode": HAMILTONIAN_CHOICES[0],
-        "exp_source": EXP_SOURCE_CHOICES[2],
+        "exp_source": EXP_SOURCE_CHOICES[3],
         "Jmax": 12,
-        "ref": "Johnson & Pratt, J. Chem. Phys. 93 (1990)"
+        "ref": "Referencia Experimental LIF"
     },
-    "Fenol (Prototipo Aromático Tipo b | Schmitt & Pratt)": {
+    "Fenol (C6H6O — Banda Tipo b)": {
         "A0": 5650.52, "B0": 2619.20, "C0": 1789.84,
         "A1": 5313.40, "B1": 2581.50, "C1": 1737.60,
         "origin_mhz": 30000.0 * WAVENUMBER_TO_MHZ,
         "Trot": 3.0, "fwhm": 25.0,
         "mu_a": 0.0, "mu_b": 1.0, "mu_c": 0.0,
-        "band_mode": BAND_TYPE_CHOICES[0],       # Tipo b Puro
+        "band_mode": BAND_TYPE_CHOICES[0],
         "ham_mode": HAMILTONIAN_CHOICES[0],
-        "exp_source": EXP_SOURCE_CHOICES[2],
+        "exp_source": EXP_SOURCE_CHOICES[3],
         "Jmax": 12,
-        "ref": "Schmitt, Ratzer & Pratt, J. Chem. Phys. (1998)"
+        "ref": "Referencia Experimental LIF"
     },
-    "Benzonitrilo (Estándar Dipolar Tipo b | Wohlfart / JPL)": {
+    "Benzonitrilo (C7H5N — Banda Tipo b)": {
         "A0": 5655.26, "B0": 1546.88, "C0": 1214.40,
         "A1": 5456.00, "B1": 1516.00, "C1": 1186.00,
         "origin_mhz": 30000.0 * WAVENUMBER_TO_MHZ,
@@ -170,11 +176,11 @@ PRESETS = {
         "mu_a": 0.0, "mu_b": 1.0, "mu_c": 0.0,
         "band_mode": BAND_TYPE_CHOICES[0],
         "ham_mode": HAMILTONIAN_CHOICES[0],
-        "exp_source": EXP_SOURCE_CHOICES[2],
+        "exp_source": EXP_SOURCE_CHOICES[3],
         "Jmax": 12,
-        "ref": "Wohlfart et al., J. Mol. Spectrosc. 247 (2008)"
+        "ref": "Catálogo Rotacional JPL"
     },
-    "Anisol (Metoxibenceno | Álvarez-Valtierra & Pratt)": {
+    "Anisol (C7H8O — Banda Híbrida a/b)": {
         "A0": 5028.85, "B0": 1569.36, "C0": 1207.72,
         "A1": 4845.10, "B1": 1548.20, "C1": 1186.40,
         "origin_mhz": 30000.0 * WAVENUMBER_TO_MHZ,
@@ -182,11 +188,11 @@ PRESETS = {
         "mu_a": 0.25, "mu_b": 0.75, "mu_c": 0.0,
         "band_mode": BAND_TYPE_CHOICES[3],
         "ham_mode": HAMILTONIAN_CHOICES[0],
-        "exp_source": EXP_SOURCE_CHOICES[2],
+        "exp_source": EXP_SOURCE_CHOICES[3],
         "Jmax": 12,
-        "ref": "Álvarez-Valtierra & Pratt (Supersonic Jet LIF)"
+        "ref": "Referencia Experimental LIF"
     },
-    "Dióxido de Azufre (SO₂ - Estándar Triatómico Tipo b | JPL / NIST)": {
+    "Dióxido de Azufre (SO₂ — Rotor Tipo b)": {
         "A0": 60778.55, "B0": 10318.07, "C0": 8799.70,
         "A1": 59850.00, "B1": 10265.00, "C1": 8750.00,
         "origin_mhz": 30000.0 * WAVENUMBER_TO_MHZ,
@@ -194,23 +200,23 @@ PRESETS = {
         "mu_a": 0.0, "mu_b": 1.0, "mu_c": 0.0,
         "band_mode": BAND_TYPE_CHOICES[0],
         "ham_mode": HAMILTONIAN_CHOICES[1],
-        "exp_source": EXP_SOURCE_CHOICES[2],
+        "exp_source": EXP_SOURCE_CHOICES[3],
         "Jmax": 8,
-        "ref": "Catálogo JPL / NIST (Lovas 1985)"
+        "ref": "Catálogo JPL / NIST"
     },
-    "Formaldehído (H₂CO - Cuasi-Simétrico Tipo a | HITRAN / JPL)": {
+    "Formaldehído (H₂CO — Rotor Tipo a)": {
         "A0": 281970.56, "B0": 38836.05, "C0": 34002.20,
         "A1": 262600.00, "B1": 33760.00, "C1": 30450.00,
         "origin_mhz": 30000.0 * WAVENUMBER_TO_MHZ,
         "Trot": 8.0, "fwhm": 50.0,
         "mu_a": 1.0, "mu_b": 0.0, "mu_c": 0.0,
-        "band_mode": BAND_TYPE_CHOICES[1],       # Tipo a Puro
+        "band_mode": BAND_TYPE_CHOICES[1],
         "ham_mode": HAMILTONIAN_CHOICES[1],
-        "exp_source": EXP_SOURCE_CHOICES[2],
+        "exp_source": EXP_SOURCE_CHOICES[3],
         "Jmax": 7,
-        "ref": "HITRAN / JPL (Bocquet et al. 1996)"
+        "ref": "Catálogo HITRAN / JPL"
     },
-    "Agua (H₂O - Rotor Asimétrico Ligero Tipo b | HITRAN / JPL)": {
+    "Agua (H₂O — Rotor Asimétrico Tipo b)": {
         "A0": 835840.29, "B0": 435347.85, "C0": 278138.70,
         "A1": 820500.00, "B1": 430100.00, "C1": 274500.00,
         "origin_mhz": 30000.0 * WAVENUMBER_TO_MHZ,
@@ -218,11 +224,11 @@ PRESETS = {
         "mu_a": 0.0, "mu_b": 1.0, "mu_c": 0.0,
         "band_mode": BAND_TYPE_CHOICES[0],
         "ham_mode": HAMILTONIAN_CHOICES[1],
-        "exp_source": EXP_SOURCE_CHOICES[2],
+        "exp_source": EXP_SOURCE_CHOICES[3],
         "Jmax": 5,
-        "ref": "HITRAN2020 / JPL (Matsushima et al.)"
+        "ref": "Catálogo HITRAN / JPL"
     },
-    "Dióxido de Carbono (CO₂ - Rotor Lineal D∞h Tipo a | HITRAN)": {
+    "Dióxido de Carbono (CO₂ — Rotor Lineal D∞h)": {
         "A0": 58492.35, "B0": 11698.47, "C0": 11698.47,
         "A1": 58030.50, "B1": 11606.10, "C1": 11606.10,
         "origin_mhz": 30000.0 * WAVENUMBER_TO_MHZ,
@@ -230,9 +236,9 @@ PRESETS = {
         "mu_a": 1.0, "mu_b": 0.0, "mu_c": 0.0,
         "band_mode": BAND_TYPE_CHOICES[1],
         "ham_mode": HAMILTONIAN_CHOICES[0],
-        "exp_source": EXP_SOURCE_CHOICES[2],
+        "exp_source": EXP_SOURCE_CHOICES[3],
         "Jmax": 10,
-        "ref": "HITRAN2020 (Gordon et al. 2022) — Ramas P y R Lineales (2B = 23.4 GHz)"
+        "ref": "Catálogo HITRAN"
     },
 }
 
@@ -325,7 +331,7 @@ def simulate_rovibronic_spectrum(
             ax.axis("off")
             return fig, "Error de validación física: verifica que A ≥ B ≥ C > 0 MHz."
 
-        # 1. Configure Hamiltonian Model: Pure Rigid Rotor vs. Watson A-Reduction
+        # 1. Configure Hamiltonian Model: Pure Rigid Rotor vs. Watson A-Reduction + Coriolis
         is_rigid = "Rotor Rígido" in str(hamiltonian_model)
         if is_rigid:
             dJ_mhz = dJK_mhz = dK_mhz = delJ_mhz = delK_mhz = 0.0
@@ -336,21 +342,28 @@ def simulate_rovibronic_spectrum(
             dK_mhz = float(dK_khz) * 1e-3
             delJ_mhz = float(delJ_khz) * 1e-3
             delK_mhz = float(delK_khz) * 1e-3
-            ham_short_label = "Watson Reducción A"
+            ham_short_label = "Watson Cuártico + Efecto Coriolis"
 
-        p_ref = PRESETS.get(preset_name, PRESETS["Carbazol (Álvarez-Valtierra & Pratt 2006 | Datos Reales PmtFla & IAR.asc)"])
+        p_ref = PRESETS.get(preset_name, PRESETS[list(PRESETS.keys())[0]])
         origin_mhz = float(p_ref.get("origin_mhz", 30000.0 * WAVENUMBER_TO_MHZ))
         origin_cm1 = origin_mhz * MHZ_TO_WAVENUMBER
+
+        c_planar_s0 = (A0 * B0) / (A0 + B0) if (A0 + B0) > 0 else C0
+        c_planar_s1 = (A1 * B1) / (A1 + B1) if (A1 + B1) > 0 else C1
+        zeta_s0 = (C0 - c_planar_s0) / c_planar_s0 if (not is_rigid and c_planar_s0 > 0 and abs(C0 - c_planar_s0) > 0.5) else 0.0
+        zeta_s1 = (C1 - c_planar_s1) / c_planar_s1 if (not is_rigid and c_planar_s1 > 0 and abs(C1 - c_planar_s1) > 0.5) else 0.0
 
         state_s0 = MoleculeState(
             name="S0", A=A0, B=B0, C=C0,
             Delta_J=dJ_mhz, Delta_JK=dJK_mhz, Delta_K=dK_mhz,
-            delta_J=delJ_mhz, delta_K=delK_mhz
+            delta_J=delJ_mhz, delta_K=delK_mhz,
+            zeta_coriolis=zeta_s0
         )
         state_s1 = MoleculeState(
             name="S1", A=A1, B=B1, C=C1,
             Delta_J=dJ_mhz * 0.96, Delta_JK=dJK_mhz * 0.96, Delta_K=dK_mhz * 0.96,
             delta_J=delJ_mhz * 0.96, delta_K=delK_mhz * 0.96,
+            zeta_coriolis=zeta_s1,
             origin=origin_cm1
         )
 
@@ -423,7 +436,20 @@ def simulate_rovibronic_spectrum(
             freq_axis, intensity, sub_dict = sim.simulate_subbands(grid_points=2500)
 
         rel_freq_ghz = (freq_axis - origin_mhz) / 1000.0
-        fig, ax = plt.subplots(figsize=(10.6, 5.0), dpi=int(render_dpi))
+        is_trifenileno_view = ("pmt-nFLa" in exp_src_str) or ("Trifenileno" in str(preset_name))
+        if is_trifenileno_view:
+            fig = plt.figure(figsize=(13.2, 8.5), dpi=int(render_dpi), facecolor="white")
+            gs_t1 = fig.add_gridspec(
+                2, 4, height_ratios=[1.55, 1.25],
+                hspace=0.45, wspace=0.24,
+                left=0.06, right=0.975, top=0.83, bottom=0.08
+            )
+            ax = fig.add_subplot(gs_t1[0, :])
+            zoom_axes_t1 = [fig.add_subplot(gs_t1[1, k]) for k in range(4)]
+        else:
+            fig, ax = plt.subplots(figsize=(10.6, 5.4), dpi=int(render_dpi), facecolor="white")
+            fig.subplots_adjust(left=0.07, right=0.97, top=0.82, bottom=0.12)
+            zoom_axes_t1 = []
 
         ref_note = ""
         if exp_dataset is not None:
@@ -461,6 +487,18 @@ def simulate_rovibronic_spectrum(
             )
             exp_legend_title = f"Experimental / Literatura ({p_ref.get('ref', 'Ref')[:28]}...)"
 
+        # Seminar-style color shading of the 4 sub-branches when viewing Trifenileno
+        t1_sub_windows = [
+            (-10.0, -5.0, "Sub-rama $^pP$", "#e0f2fe", "#0284c7"),
+            (-5.0, -2.5, "Sub-rama $^rP$", "#dcfce7", "#16a34a"),
+            (-2.5, 0.14, "Rama $Q$ central", "#fef3c7", "#d97706"),
+            (0.14, 4.0, "Sub-rama $^rR$", "#fce7f3", "#db2777"),
+        ]
+        if is_trifenileno_view:
+            for w_lo, w_hi, w_title, bg_col, txt_col in t1_sub_windows:
+                ax.axvspan(w_lo, w_hi, color=bg_col, alpha=0.45, zorder=0)
+                ax.axvline(w_lo, color=txt_col, ls="--", lw=0.75, alpha=0.45)
+
         # STANDARD JCP / JB95 MIRROR CONVENTION:
         # Experimental is ALWAYS on TOP (+Y), and Simulated is inverted on BOTTOM (-Y) when mirror_exp=True!
         if overlay_exp:
@@ -483,12 +521,36 @@ def simulate_rovibronic_spectrum(
             ax.plot(
                 rel_freq_ghz, y_sim_plotted,
                 color="#1d4ed8", lw=1.45, alpha=alpha_sim, zorder=4,
-                label=f"Simulado MELIORA [{ham_short_label} · Tipo {sel_crit.upper()} · {sim_pos_label}]"
+                label=f"Simulado Untitled Project [{ham_short_label} · Tipo {sel_crit.upper()} · {sim_pos_label}]"
             )
             ax.fill_between(
                 rel_freq_ghz, 0.0, y_sim_plotted,
                 color="#3b82f6", alpha=0.18 * alpha_sim, zorder=2
             )
+
+        # Render the 4 zoomed sub-branch subplots at bottom if viewing Trifenileno
+        if is_trifenileno_view and len(zoom_axes_t1) == 4:
+            for idx_z, (w_lo, w_hi, w_title, bg_col, txt_col) in enumerate(t1_sub_windows):
+                ax_z = zoom_axes_t1[idx_z]
+                ax_z.set_facecolor(bg_col)
+                for sp in ax_z.spines.values():
+                    sp.set_edgecolor(txt_col)
+                    sp.set_linewidth(1.2)
+                m_w = (rel_freq_ghz >= w_lo) & (rel_freq_ghz <= w_hi)
+                if np.any(m_w):
+                    xw = rel_freq_ghz[m_w]
+                    yw_e = y_ref[m_w]
+                    yw_s = intensity[m_w]
+                    ax_z.plot(xw, yw_e, color="#0f172a", lw=1.0, alpha=0.85, label="Exp")
+                    ax_z.plot(xw, yw_s, color=txt_col, lw=1.3, alpha=0.95, label="Sim")
+                    ax_z.fill_between(xw, 0.0, yw_s, color=txt_col, alpha=0.14)
+                    ax_z.set_xlim(w_lo, w_hi)
+                ax_z.set_title(f"{w_title} [{w_lo:+.1f} a {w_hi:+.2f} GHz]", fontsize=8.8, fontweight="bold", color=txt_col)
+                ax_z.set_xlabel("ν - ν₀ (GHz)", fontsize=8.0)
+                if idx_z == 0:
+                    ax_z.set_ylabel("Int. Norm.", fontsize=8.2)
+                ax_z.tick_params(labelsize=7.5)
+                ax_z.grid(True, ls=":", alpha=0.45)
 
         # Optional decomposition of Type a, Type b, Type c sub-bands
         if show_subbands:
@@ -542,7 +604,7 @@ def simulate_rovibronic_spectrum(
 
         ax.set_title(
             f"Espectro S₁ ← S₀ [{ham_short_label} | Regla: Tipo {sel_crit.upper()} | J_max={J_max}, T_rot={T_rot:.1f} K, FWHM={fwhm_mhz:.0f} MHz]",
-            fontsize=11.0, fontweight="bold", pad=10
+            fontsize=11.0, fontweight="bold", pad=28
         )
         ax.set_xlabel("Desplazamiento de Frecuencia Relativa ν - ν₀ (GHz)", fontsize=10.5)
         ax.set_ylabel(
@@ -550,8 +612,7 @@ def simulate_rovibronic_spectrum(
             fontsize=10.0
         )
         ax.grid(True, linestyle="--", alpha=0.35)
-        ax.legend(loc="upper right", fontsize=8.2, framealpha=0.92)
-        fig.tight_layout()
+        ax.legend(bbox_to_anchor=(0.5, 1.015), loc="lower center", ncol=2, fontsize=8.0, framealpha=0.94)
 
         stats = (
             f"✓ Simulación cuántica completada en {elapsed_ms:.1f} ms\n"
@@ -939,7 +1000,7 @@ def export_spectrum_high_dpi(
     )
 
     safe_mol = str(preset_name).split("(")[0].strip().replace(" ", "_").replace("-", "_")
-    filename = f"MELIORA_{safe_mol}_{dpi_val}DPI.{ext}"
+    filename = f"Untitled_Project_{safe_mol}_{dpi_val}DPI.{ext}"
     out_path = os.path.join(tempfile.gettempdir(), filename)
     fig.savefig(out_path, dpi=dpi_val, bbox_inches="tight", facecolor="white")
     plt.close(fig)
@@ -1167,7 +1228,7 @@ def select_catalog_molecule(catalog_choice):
 
 
 def load_preset_values(preset_name):
-    default_key = "Carbazol (Álvarez-Valtierra & Pratt 2006 | Datos Reales PmtFla & IAR.asc)"
+    default_key = list(PRESETS.keys())[0]
     p = PRESETS.get(preset_name, PRESETS[default_key])
     return (
         p["A0"], p["B0"], p["C0"],
@@ -1177,67 +1238,93 @@ def load_preset_values(preset_name):
         p["Jmax"],
         p.get("band_mode", BAND_TYPE_CHOICES[0]),
         p.get("ham_mode", HAMILTONIAN_CHOICES[0]),
-        p.get("exp_source", EXP_SOURCE_CHOICES[2]),
+        p.get("exp_source", EXP_SOURCE_CHOICES[3]),
     )
 
 
 
 
 # =============================================================================
-# MODO ASYMROTOR (.mlx / MATLAB Dr. Mario Delgado-Jaime & Trifenileno)
+# MODO ASYMROTOR (Simulación y Ajuste de Sub-ramas)
 # =============================================================================
 ASYMROTOR_MLX_PRESETS = {
-    "Carbazol — Script Exacto Simulacion_RotorRigido.mlx (Dr. Mario sobre PmtFla)": {
-        "A": 2253.8000,   # 1721 + 532 + 0.8
-        "B": 594.0000,    # 532 + 124/2
-        "C": 470.8000,    # 532 - 124/2 + 0.8
-        "dA": -2.5700,    # 3.91 - 6.48
-        "dB": -7.8950,    # -6.48 - 2.83/2
-        "dC": -5.0650,    # -6.48 + 2.83/2
-        "Nu0": 923604613.0,
-        "Shift": 0.0,
-        "Temp": 3.2,
-        "Th": 90.0,
+    "Trifenileno (C18H12) — Watson + Coriolis (85% Tipo A en Rama Q)": {
+        "A": 506.88854,
+        "B": 506.44695,
+        "C": 279.84195,
+        "dA": -3.09507,
+        "dB": -3.09941,
+        "dC": -1.46120,
+        "Nu0": 910238000.0,
+        "Shift": 1915.43,
+        "Temp": 3.04,
+        "Th": 44.8,
         "Ph": 0.0,
-        "GW": 37.0,
-        "LW": 5.2,
+        "GW": 31.53,
+        "LW": 3.10,
         "JMax": 50,
         "Unit": "1 — MHz (Estándar)",
-        "SpinAxis": "2 — Eje b (Simetría C₂v Carbazol)",
-        "SpinOdd": 15.0 / 17.0,
-        "T2": 0.0,
-        "W2": 0.0,
-        "Int1": 9130.0,
-        "Offset": 0.071,
+        "SpinAxis": "2 — Eje b (Simetría C₂)",
+        "SpinOdd": 2.0,
+        "T2": 12.0,
+        "W2": 0.0501,
+        "Int1": 5926.664,
+        "Offset": 0.1962,
         "planar_chk": False,
         "oblate_chk": False,
+        "exp_src": "pmt-nFLa (Trifenileno)",
+        "is_watson": True,
+        "DJ": 1.5,
+        "DJK": -2.8,
+        "DK": 2.1,
+        "dB_Cor": -0.65493,
+        "dNu_Cor": -1855.43,
+        "pct_a_q": 85.0,
+        "pct_b_q": 15.0,
+        "pct_c_q": 0.0,
+        "pct_scope": "Solo Rama Q (Mantiene Θ, Φ en Ramas P y R)",
+        "q_gain": 1.00,
+        "q_subhops": True,
     },
-    "Carbazol — Constantes Refinadas JB95 IAR.asc (Dr. Leonardo sobre PmtFla)": {
-        "A": 2253.2409,
-        "B": 594.2103,
-        "C": 470.3670,
-        "dA": -2.6305,
-        "dB": -7.8621,
-        "dC": -5.0747,
-        "Nu0": 923604613.0295,
-        "Shift": 0.0,
-        "Temp": 2.623,
-        "Th": 90.0,
+    "Trifenileno (C18H12) — Watson + Coriolis (50% A / 50% B Base)": {
+        "A": 506.88854,
+        "B": 506.44695,
+        "C": 279.84195,
+        "dA": -3.09507,
+        "dB": -3.09941,
+        "dC": -1.46120,
+        "Nu0": 910238000.0,
+        "Shift": 1915.43,
+        "Temp": 3.04,
+        "Th": 44.8,
         "Ph": 0.0,
-        "GW": 37.0,
-        "LW": 5.2,
+        "GW": 31.53,
+        "LW": 3.10,
         "JMax": 50,
         "Unit": "1 — MHz (Estándar)",
-        "SpinAxis": "2 — Eje b (Simetría C₂v Carbazol)",
-        "SpinOdd": 15.0 / 17.0,
-        "T2": 0.0,
-        "W2": 0.0,
-        "Int1": 9130.0,
-        "Offset": 0.071,
+        "SpinAxis": "2 — Eje b (Simetría C₂)",
+        "SpinOdd": 2.0,
+        "T2": 12.0,
+        "W2": 0.0501,
+        "Int1": 5926.664,
+        "Offset": 0.1962,
         "planar_chk": False,
         "oblate_chk": False,
+        "exp_src": "pmt-nFLa (Trifenileno)",
+        "is_watson": True,
+        "DJ": 1.5,
+        "DJK": -2.8,
+        "DK": 2.1,
+        "dB_Cor": -0.65493,
+        "dNu_Cor": -1855.43,
+        "pct_a_q": 50.3,
+        "pct_b_q": 49.7,
+        "pct_c_q": 0.0,
+        "pct_scope": "Solo Rama Q (Mantiene Θ, Φ en Ramas P y R)",
+        "q_gain": 1.00,
+        "q_subhops": False,
     },
-    "Trifenileno (C18H12) — Espectro Real pmt-nFLa (Óptimo Global FFT-DE + Coriolis C_eff, r = 56.33%)": {
+    "Trifenileno (C18H12) — Rotor Efectivo C_eff (Sin Corrección de Sub-ramas)": {
         "A": 506.88854,
         "B": 506.44695,
         "C": 279.84195,
@@ -1253,7 +1340,7 @@ ASYMROTOR_MLX_PRESETS = {
         "LW": 3.10,
         "JMax": 50,
         "Unit": "1 — MHz (Estándar)",
-        "SpinAxis": "2 — Eje b (Simetría C₂v Carbazol)",
+        "SpinAxis": "2 — Eje b (Simetría C₂)",
         "SpinOdd": 2.0,
         "T2": 12.0,
         "W2": 0.0501,
@@ -1261,9 +1348,21 @@ ASYMROTOR_MLX_PRESETS = {
         "Offset": 0.2211,
         "planar_chk": False,
         "oblate_chk": False,
-        "exp_src": "📡 Espectrómetro Pre-cargado: pmt-nFLa (Trifenileno Crudo)",
+        "exp_src": "pmt-nFLa (Trifenileno)",
+        "is_watson": False,
+        "DJ": 0.0,
+        "DJK": 0.0,
+        "DK": 0.0,
+        "dB_Cor": 0.0,
+        "dNu_Cor": 0.0,
+        "pct_a_q": 50.3,
+        "pct_b_q": 49.7,
+        "pct_c_q": 0.0,
+        "pct_scope": "Todo el Espectro (Ramas P, Q y R)",
+        "q_gain": 1.00,
+        "q_subhops": False,
     },
-    "Trifenileno (C18H12) — Modelo Plano Estricto C = AB/(A+B) (Comparativa sin Coriolis, r = 16.77%)": {
+    "Trifenileno (C18H12) — Rotor Plano Estricto C = AB/(A+B) (Sin Coriolis)": {
         "A": 505.20784,
         "B": 505.20784,
         "C": 252.60392,
@@ -1287,7 +1386,95 @@ ASYMROTOR_MLX_PRESETS = {
         "Offset": 0.2964,
         "planar_chk": True,
         "oblate_chk": True,
-        "exp_src": "📡 Espectrómetro Pre-cargado: pmt-nFLa (Trifenileno Crudo)",
+        "exp_src": "pmt-nFLa (Trifenileno)",
+        "is_watson": False,
+        "DJ": 0.0,
+        "DJK": 0.0,
+        "DK": 0.0,
+        "dB_Cor": 0.0,
+        "dNu_Cor": 0.0,
+        "pct_a_q": 100.0,
+        "pct_b_q": 0.0,
+        "pct_c_q": 0.0,
+        "pct_scope": "Todo el Espectro (Ramas P, Q y R)",
+        "q_gain": 1.00,
+        "q_subhops": False,
+    },
+    "Carbazol (C12H9N) — Rotor Rígido (PmtFla)": {
+        "A": 2253.8000,
+        "B": 594.0000,
+        "C": 470.8000,
+        "dA": -2.5700,
+        "dB": -7.8950,
+        "dC": -5.0650,
+        "Nu0": 923604613.0,
+        "Shift": 0.0,
+        "Temp": 3.2,
+        "Th": 90.0,
+        "Ph": 0.0,
+        "GW": 37.0,
+        "LW": 5.2,
+        "JMax": 50,
+        "Unit": "1 — MHz (Estándar)",
+        "SpinAxis": "2 — Eje b (Simetría C₂)",
+        "SpinOdd": 15.0 / 17.0,
+        "T2": 0.0,
+        "W2": 0.0,
+        "Int1": 9130.0,
+        "Offset": 0.071,
+        "planar_chk": False,
+        "oblate_chk": False,
+        "exp_src": "PmtFla (Carbazol)",
+        "is_watson": False,
+        "DJ": 0.0,
+        "DJK": 0.0,
+        "DK": 0.0,
+        "dB_Cor": 0.0,
+        "dNu_Cor": 0.0,
+        "pct_a_q": 0.0,
+        "pct_b_q": 100.0,
+        "pct_c_q": 0.0,
+        "pct_scope": "Todo el Espectro (Ramas P, Q y R)",
+        "q_gain": 1.00,
+        "q_subhops": False,
+    },
+    "Carbazol (C12H9N) — Constantes Refinadas (IAR.asc)": {
+        "A": 2253.2409,
+        "B": 594.2103,
+        "C": 470.3670,
+        "dA": -2.6305,
+        "dB": -7.8621,
+        "dC": -5.0747,
+        "Nu0": 923604613.0295,
+        "Shift": 0.0,
+        "Temp": 2.623,
+        "Th": 90.0,
+        "Ph": 0.0,
+        "GW": 37.0,
+        "LW": 5.2,
+        "JMax": 50,
+        "Unit": "1 — MHz (Estándar)",
+        "SpinAxis": "2 — Eje b (Simetría C₂)",
+        "SpinOdd": 15.0 / 17.0,
+        "T2": 0.0,
+        "W2": 0.0,
+        "Int1": 9130.0,
+        "Offset": 0.071,
+        "planar_chk": False,
+        "oblate_chk": False,
+        "exp_src": "PmtFla (Carbazol)",
+        "is_watson": False,
+        "DJ": 0.0,
+        "DJK": 0.0,
+        "DK": 0.0,
+        "dB_Cor": 0.0,
+        "dNu_Cor": 0.0,
+        "pct_a_q": 0.0,
+        "pct_b_q": 100.0,
+        "pct_c_q": 0.0,
+        "pct_scope": "Todo el Espectro (Ramas P, Q y R)",
+        "q_gain": 1.00,
+        "q_subhops": False,
     },
 }
 
@@ -1295,7 +1482,23 @@ ASYMROTOR_MLX_PRESETS = {
 def load_asymrotor_mlx_preset(preset_choice):
     default_k = list(ASYMROTOR_MLX_PRESETS.keys())[0]
     p = ASYMROTOR_MLX_PRESETS.get(preset_choice, ASYMROTOR_MLX_PRESETS[default_k])
-    exp_s = p.get("exp_src", "📡 Espectrómetro Pre-cargado: PmtFla (Carbazol)")
+    exp_s = p.get("exp_src", "pmt-nFLa (Trifenileno)")
+    th_r = np.deg2rad(float(p["Th"]))
+    ph_r = np.deg2rad(float(p["Ph"]))
+    def_a = round(float(np.cos(th_r) ** 2) * 100.0, 1)
+    def_b = round(float((np.sin(th_r) * np.cos(ph_r)) ** 2) * 100.0, 1)
+    def_c = round(float((np.sin(th_r) * np.sin(ph_r)) ** 2) * 100.0, 1)
+    pct_a_q = float(p.get("pct_a_q", def_a))
+    pct_b_q = float(p.get("pct_b_q", def_b))
+    pct_c_q = float(p.get("pct_c_q", def_c))
+    pct_scope = str(p.get("pct_scope", "Solo Rama Q (Mantiene Θ, Φ en Ramas P y R)"))
+    q_gain = float(p.get("q_gain", 1.0))
+    q_subhops = bool(p.get("q_subhops", False))
+    dj_v = float(p.get("DJ", 0.0))
+    djk_v = float(p.get("DJK", 0.0))
+    dk_v = float(p.get("DK", 0.0))
+    db_cor_v = float(p.get("dB_Cor", 0.0))
+    dnu_cor_v = float(p.get("dNu_Cor", 0.0))
     return (
         exp_s,
         p["A"], p["B"], p["C"],
@@ -1306,7 +1509,9 @@ def load_asymrotor_mlx_preset(preset_choice):
         p["Unit"], p["SpinAxis"], round(float(p["SpinOdd"]), 6),
         p["T2"], p["W2"],
         p["Int1"], p["Offset"],
-        p["planar_chk"], p["oblate_chk"]
+        p["planar_chk"], p["oblate_chk"],
+        pct_a_q, pct_b_q, pct_c_q, pct_scope, q_gain, q_subhops,
+        dj_v, djk_v, dk_v, db_cor_v, dnu_cor_v
     )
 
 
@@ -1352,14 +1557,21 @@ def run_asymrotor_mlx_ui(
     GW, LW, JMax,
     unit_str, spin_axis_str, SpinOdd,
     T2, W2,
-    Int1, Offset
+    Int1, Offset,
+    pct_a_q=85.0,
+    pct_b_q=15.0,
+    pct_c_q=0.0,
+    pct_scope="Solo Rama Q (Mantiene Θ, Φ en Ramas P y R)",
+    q_gain=1.0,
+    q_subhops_chk=True,
+    dj_in=1.5,
+    djk_in=-2.8,
+    dk_in=2.1,
+    db_cor_in=-0.65493,
+    dnu_cor_in=-1855.43
 ):
     """
-    Executes Dr. Mario Ulises Delgado-Jaime's exact `asym_rotor` model
-    (`Simulacion_RotorRigido.mlx` / `AsymRotor.m`) and plots:
-      - Classic MATLAB Live Script (.mlx) view: black experimental dots + blue model curve
-        in raw PMT units (`Int1 * AsymRotor(...) + Offset`), OR
-      - Standard JCP Mirror View: Experimental on TOP (+Y) and Model + Quantum Sticks on BOTTOM (-Y).
+    Executes the `asym_rotor` / `asym_rotor_watson` model and renders the selected view.
     """
     plt.close("all")
     try:
@@ -1378,22 +1590,93 @@ def run_asymrotor_mlx_ui(
         SpinOdd = float(SpinOdd)
         T2, W2 = float(T2), float(W2)
         Int1, Offset = float(Int1), float(Offset)
+        q_gain = max(0.05, float(q_gain))
 
         x_exp, y_exp, exp_name = _load_raw_xy_for_asymrotor(exp_choice_str, uploaded_file)
 
         t0 = time.perf_counter()
-        y_unit, lines_dict = asym_rotor(
-            x_exp,
-            A, B, C,
-            dA, dB, dC,
-            Nu0 + Shift,
-            Temp, Th, Ph,
-            GW, LW,
-            JMax=JMax, Unit=Unit,
-            SpinAxis=SpinAxis, SpinOdd=SpinOdd,
-            T2=T2, W2=W2,
-            lines=True
+        # Convert %A, %B, %C sliders to normalized weights and angles (th_q_deg, ph_q_deg)
+        wa_q = max(0.0, float(pct_a_q))
+        wb_q = max(0.0, float(pct_b_q))
+        wc_q = max(0.0, float(pct_c_q))
+        w_tot_q = wa_q + wb_q + wc_q
+        if w_tot_q > 1e-6:
+            wa_n, wb_n, wc_n = wa_q / w_tot_q, wb_q / w_tot_q, wc_q / w_tot_q
+            th_q_deg = round(float(np.rad2deg(np.arccos(np.clip(np.sqrt(wa_n), 0.0, 1.0)))), 2)
+            ph_q_deg = round(float(np.rad2deg(np.arctan2(np.sqrt(wc_n), np.sqrt(wb_n)))), 2)
+        else:
+            wa_n, wb_n, wc_n = 0.503, 0.497, 0.0
+            th_q_deg, ph_q_deg = float(Th), float(Ph)
+
+        # If scope is global ("Todo el Espectro"), sync (Th, Ph) with (%A, %B, %C)
+        if "Todo el Espectro" in str(pct_scope):
+            Th = th_q_deg
+            Ph = ph_q_deg
+
+        dj_val = float(dj_in) * 1e-6
+        djk_val = float(djk_in) * 1e-6
+        dk_val = float(dk_in) * 1e-6
+        db_cor_val = float(db_cor_in)
+        dnu_cor_val = float(dnu_cor_in)
+
+        use_watson_coriolis = (
+            abs(db_cor_val) > 1e-9
+            or abs(dnu_cor_val) > 1e-9
+            or bool(q_subhops_chk)
+            or ("Watson" in str(preset_choice))
         )
+
+        if use_watson_coriolis and ("pmt-nFLa" in exp_name):
+            y_unit, lines_dict = asym_rotor_watson(
+                x_exp,
+                A, B, C,
+                dA, dB, dC,
+                Nu0 + Shift,
+                Temp, Th, Ph,
+                GW, LW,
+                JMax=JMax, Unit=Unit,
+                SpinAxis=SpinAxis, SpinOdd=SpinOdd,
+                T2=T2, W2=W2,
+                DJ=dj_val, DJK=djk_val, DK=dk_val,
+                dB_Cor=db_cor_val, dNu_Cor=dnu_cor_val,
+                Theta_Q=th_q_deg, Phi_Q=ph_q_deg,
+                resolve_Q_subhops=bool(q_subhops_chk),
+                q_gain=q_gain,
+                lines=True
+            )
+        else:
+            y_unit, lines_dict = asym_rotor(
+                x_exp,
+                A, B, C,
+                dA, dB, dC,
+                Nu0 + Shift,
+                Temp, Th, Ph,
+                GW, LW,
+                JMax=JMax, Unit=Unit,
+                SpinAxis=SpinAxis, SpinOdd=SpinOdd,
+                T2=T2, W2=W2,
+                lines=True,
+                DJ=dj_val, DJK=djk_val, DK=dk_val
+            )
+            # If user selected "Solo Rama Q" in standard mode and angles differ or q_gain != 1.0, apply Q modulation
+            if ("Solo Rama Q" in str(pct_scope)) and (abs(th_q_deg - Th) > 0.2 or abs(ph_q_deg - Ph) > 0.2 or abs(q_gain - 1.0) > 1e-3):
+                y_q_only = asym_rotor(
+                    x_exp,
+                    A, B, C,
+                    dA, dB, dC,
+                    Nu0 + Shift,
+                    Temp, th_q_deg, ph_q_deg,
+                    GW, LW,
+                    JMax=JMax, Unit=Unit,
+                    SpinAxis=SpinAxis, SpinOdd=SpinOdd,
+                    T2=T2, W2=W2,
+                    lines=False,
+                    DJ=dj_val, DJK=djk_val, DK=dk_val
+                )
+                rel_tmp = (x_exp - (Nu0 + Shift)) / 1000.0
+                m_q_win = (rel_tmp >= -2.5) & (rel_tmp <= +0.14)
+                y_unit = np.where(m_q_win, q_gain * y_q_only, y_unit)
+
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
         model = Int1 * y_unit + Offset
@@ -1402,74 +1685,196 @@ def run_asymrotor_mlx_ui(
         corr_r = float(np.corrcoef(y_exp, model)[0, 1] * 100.0) if np.std(model) > 1e-12 else 0.0
 
         rel_ghz = (x_exp - (Nu0 + Shift)) / 1000.0
+        sse_tot = float(np.sum(residuals ** 2))
 
-        fig, (ax1, ax2) = plt.subplots(
-            2, 1, figsize=(11.0, 6.0), dpi=135,
-            gridspec_kw={"height_ratios": [3.2, 1.15]}, sharex=True
-        )
+        def _sub_r(m_sub):
+            if np.sum(m_sub) < 4 or np.std(model[m_sub]) < 1e-12:
+                return 0.0, 0.0
+            r_s = float(np.corrcoef(y_exp[m_sub], model[m_sub])[0, 1]) * 100.0
+            ye0 = np.clip(y_exp[m_sub] - Offset, 0.0, None)
+            ys0 = np.clip(model[m_sub] - Offset, 0.0, None)
+            c_s = float(np.dot(ye0, ys0) / (np.linalg.norm(ye0) * np.linalg.norm(ys0) + 1e-12)) * 100.0
+            return r_s, c_s
 
-        if "MATLAB" in str(plot_style_str) or ".mlx" in str(plot_style_str):
-            # Exact replica of Dr. Mario's Simulacion_RotorRigido.mlx plot:
-            # figure; plot((x-(nu0+Shift))/1000, y,'Marker','.','MarkerSize',10,'Color','k');
-            # hold on; plot((x-(nu0+Shift))/1000, model,'LineWidth',2)
-            ax1.plot(
-                rel_ghz, y_exp,
-                linestyle="none", marker=".", markersize=5.5, color="#0f172a", alpha=0.82,
-                label=f"Datos Experimentales '{exp_name}' (Puntos Negros .mlx)"
-            )
-            ax1.plot(
-                rel_ghz, model,
-                color="#0284c7", linewidth=1.85, alpha=0.95,
-                label=f"Modelo AsymRotor: Int1*AsymRotor(...) + Offset (r = {corr_r:.2f}%)"
-            )
-            ax1.axhline(Offset, color="#94a3b8", ls=":", lw=0.9, label=f"Línea Base Offset = {Offset:.4f}")
-            ax1.set_ylabel("Señal Detector PMT (Unidades Crudas)", fontsize=9.8)
-            ax1.set_title(
-                f"Vista Clásica Live Script (.mlx) Dr. Mario Delgado-Jaime · r = {corr_r:.2f}% | RMS = {rms_err:.4f}",
-                fontsize=10.8, fontweight="bold"
-            )
+        if "pmt-nFLa" in exp_name or (rel_ghz.min() < -12.0 and rel_ghz.max() > 9.0):
+            win_defs = [
+                (-15.0, -12.0, "1) Sub-rama pP (P Externa)", "#ea580c", "-15.0 a -12.0 GHz"),
+                (-6.0,  -4.0,  "2) Sub-rama rP (P Interna)", "#7e22ce", "-6.0 a -4.0 GHz"),
+                (-2.5,  +0.14, "3) Rama Q Central (pQ + rQ)", "#15803d", "-2.5 a +0.14 GHz"),
+                (+6.5,  +9.5,  "4) Sub-rama rR (R Alta Res)", "#0284c7", "+6.5 a +9.5 GHz"),
+            ]
         else:
-            # Standard JCP Mirror View (+Exp on top, -Model & Sticks on bottom)
-            y_exp_sub = np.clip(y_exp - Offset, 0.0, None)
-            exp_max = float(np.max(y_exp_sub)) if np.max(y_exp_sub) > 0 else 1.0
-            y_exp_norm = y_exp_sub / exp_max
+            r_min, r_max = float(rel_ghz.min()), float(rel_ghz.max())
+            win_defs = [
+                (r_min * 0.75, r_min * 0.45, "1) Sub-rama pP Externa", "#ea580c", f"{r_min*0.75:.1f} a {r_min*0.45:.1f} GHz"),
+                (r_min * 0.40, r_min * 0.14, "2) Sub-rama rP Interna", "#7e22ce", f"{r_min*0.40:.1f} a {r_min*0.14:.1f} GHz"),
+                (r_min * 0.10, r_max * 0.06, "3) Rama Q Central", "#15803d", f"{r_min*0.10:.1f} a {r_max*0.06:+.1f} GHz"),
+                (r_max * 0.25, r_max * 0.65, "4) Sub-rama rR Alta Res", "#0284c7", f"{r_max*0.25:+.1f} a {r_max*0.65:+.1f} GHz"),
+            ]
 
-            mod_sub = np.clip(model - Offset, 0.0, None)
-            mod_max = float(np.max(mod_sub)) if np.max(mod_sub) > 0 else 1.0
-            y_mod_norm = mod_sub / mod_max
+        win_metrics = []
+        for w_lo, w_hi, w_title, w_col, w_rng in win_defs:
+            m_w = (rel_ghz >= w_lo) & (rel_ghz <= w_hi)
+            rw, cw = _sub_r(m_w)
+            win_metrics.append((w_lo, w_hi, m_w, w_title, rw, cw, w_col, w_rng))
 
-            ax1.plot(rel_ghz, y_exp_norm, color="#ea580c", lw=1.25, label=f"Experimental '{exp_name}' (Arriba +Y)")
-            ax1.fill_between(rel_ghz, 0.0, y_exp_norm, color="#f97316", alpha=0.12)
-            ax1.plot(rel_ghz, -y_mod_norm, color="#1d4ed8", lw=1.35, label=f"Modelo AsymRotor Invertido (Abajo -Y | r = {corr_r:.2f}%)")
-            ax1.fill_between(rel_ghz, 0.0, -y_mod_norm, color="#3b82f6", alpha=0.15)
+        style_s = str(plot_style_str)
 
-            if lines_dict["Nu"].size > 0:
-                top_mask = lines_dict["I"] >= (0.04 * np.max(lines_dict["I"]))
-                st_ghz = (lines_dict["Nu"][top_mask] - (Nu0 + Shift)) / 1000.0
-                st_int = (lines_dict["I"][top_mask] / np.max(lines_dict["I"])) * 0.85
-                ax1.vlines(st_ghz, 0.0, -st_int, color="#059669", lw=0.75, alpha=0.65, label="Líneas Stick AsymRotor")
-
-            ax1.axhline(0.0, color="#1e293b", lw=1.0)
-            ax1.set_ylim(-1.12, 1.15)
-            ax1.set_ylabel("Intensidad Normalizada (+Exp / -Sim)", fontsize=9.8)
-            ax1.set_title(
-                f"Vista Espejo JCP con Motor AsymRotor (Dr. Mario Delgado-Jaime) · r = {corr_r:.2f}%",
-                fontsize=10.8, fontweight="bold"
+        if "Vista General" in style_s or "Dashboard" in style_s:
+            import matplotlib.gridspec as gridspec
+            fig = plt.figure(figsize=(14.6, 10.6), dpi=140, facecolor="white")
+            gs = gridspec.GridSpec(
+                3, 4, height_ratios=[1.42, 0.52, 1.35],
+                hspace=0.52, wspace=0.23,
+                left=0.055, right=0.975, top=0.835, bottom=0.065
+            )
+            fig.suptitle(
+                f"Untitled Project — Análisis Rovibrónico con Hamiltoniano de Watson + Efecto de Coriolis ({exp_name})\n"
+                f"A″ = {A:.4f} MHz, B″ = {B:.4f} MHz, C″_eff = {C:.4f} MHz  |  Correlación Global r = {corr_r:.2f}% (RMS = {rms_err:.4f}, SSE = {sse_tot:.2f})",
+                fontsize=11.4, fontweight="bold", y=0.972
             )
 
-        ax1.axvline(0.0, color="#ef4444", ls="--", lw=0.85, alpha=0.7, label="Origen ν₀ + Shift")
-        ax1.legend(loc="upper right", fontsize=8.3, framealpha=0.92)
-        ax1.grid(True, ls="--", alpha=0.35)
+            ax_full = fig.add_subplot(gs[0, :])
+            ax_full.plot(rel_ghz, y_exp, ".k", markersize=4.5, label=f"Experimental LIF ({exp_name}, {len(x_exp)} pts)")
+            ax_full.plot(rel_ghz, model, "-b", lw=1.15, alpha=0.92, label=f"Modelo Simulado (r_Global = {corr_r:.2f}%, RMS = {rms_err:.4f})")
 
-        # Bottom panel: Residuals (y_exp - model)
-        ax2.plot(rel_ghz, residuals, color="#475569", lw=0.9, alpha=0.85, label=f"Residual (y_exp - model) | RMS = {rms_err:.4f}")
-        ax2.axhline(0.0, color="#dc2626", ls="--", lw=0.85)
-        ax2.set_xlabel("Frecuencia Relativa (x - (ν₀ + Shift)) / 1000  [GHz]", fontsize=10.0)
-        ax2.set_ylabel("Residual", fontsize=9.5)
-        ax2.legend(loc="upper right", fontsize=8.0)
-        ax2.grid(True, ls="--", alpha=0.35)
+            for w_lo, w_hi, m_w, w_title, rw, cw, w_col, w_rng in win_metrics:
+                ax_full.axvspan(w_lo, w_hi, color=w_col, alpha=0.16, label=f"{w_title} ({w_rng}): r = {rw:.2f}% (Cos = {cw:.1f}%)")
+            ax_full.axvline(0.0, color="#16a34a", ls="--", lw=1.3)
+            ax_full.set_ylabel("Intensidad LIF (u.a.)", fontsize=9.8, fontweight="bold")
+            ax_full.set_xlim(rel_ghz.min(), rel_ghz.max())
+            ax_full.set_ylim(max(0.0, float(np.min(y_exp)) * 0.85), max(float(np.max(y_exp)), float(np.max(model))) * 1.12)
+            # Place legend outside above ax_full so it NEVER overlaps any data points or lines
+            ax_full.legend(
+                bbox_to_anchor=(0.5, 1.02), loc="lower center",
+                fontsize=7.8, ncol=3, framealpha=0.95, edgecolor="#cbd5e1"
+            )
+            ax_full.grid(True, alpha=0.30)
 
-        fig.tight_layout()
+            ax_res = fig.add_subplot(gs[1, :])
+            ax_res.plot(rel_ghz, residuals, "-r", lw=0.78, label=f"Residuales (Exp - Sim | RMS = {rms_err:.4f}, SSE = {sse_tot:.2f})")
+            ax_res.axhline(0.0, color="k", ls="--", lw=0.8)
+            ax_res.axvline(0.0, color="#16a34a", ls="--", lw=1.0)
+            max_r_abs = max(0.05, float(np.max(np.abs(residuals))))
+            ax_res.set_ylim(-max_r_abs * 1.15, max_r_abs * 1.48)
+            ax_res.set_ylabel("Residual", fontsize=9.2, fontweight="bold")
+            ax_res.set_xlabel("Frecuencia Relativa al Origen ν - ν₀ (GHz)", fontsize=9.8, fontweight="bold")
+            ax_res.set_xlim(rel_ghz.min(), rel_ghz.max())
+            ax_res.legend(loc="upper right", fontsize=8.0, framealpha=0.92)
+            ax_res.grid(True, alpha=0.30)
+
+            for col_idx, (w_lo, w_hi, m_w, w_title, rw, cw, w_col, w_rng) in enumerate(win_metrics):
+                ax_w = fig.add_subplot(gs[2, col_idx])
+                if np.sum(m_w) > 2:
+                    xw = rel_ghz[m_w]
+                    ye_w = y_exp[m_w]
+                    ym_w = model[m_w]
+                    ax_w.plot(xw, ye_w, "o-k", markersize=3.5, lw=0.82, alpha=0.88, label="Experimental")
+                    ax_w.plot(xw, ym_w, "-", color=w_col, lw=1.6, label=f"Simulado (r={rw:.1f}%)")
+                    ax_w.set_xlim(xw.min(), xw.max())
+                    y_lo_w = max(0.0, min(float(np.min(ye_w)), float(np.min(ym_w))) * 0.85)
+                    y_hi_w = max(float(np.max(ye_w)), float(np.max(ym_w)))
+                    ax_w.set_ylim(y_lo_w, y_lo_w + (y_hi_w - y_lo_w) * 1.28)
+                ax_w.set_title(f"{w_title}\nPearson r = {rw:.2f}% | Cos = {cw:.1f}%", fontsize=9.0, fontweight="bold", color=w_col)
+                ax_w.set_xlabel(f"ν - ν₀ [{w_rng}]", fontsize=8.5, fontweight="bold")
+                if col_idx == 0:
+                    ax_w.set_ylabel("Intensidad LIF (u.a.)", fontsize=9.2, fontweight="bold")
+                ax_w.legend(loc="upper right", ncol=2, fontsize=7.2, framealpha=0.92)
+                ax_w.grid(True, alpha=0.32)
+
+        elif "Acercamiento" in style_s:
+            fig, axes = plt.subplots(4, 1, figsize=(12.8, 11.4), dpi=140, facecolor="white")
+            plt.subplots_adjust(hspace=0.46, left=0.065, right=0.965, top=0.91, bottom=0.06)
+            fig.suptitle(
+                f"Untitled Project — Acercamiento Punto a Punto en las 4 Sub-ramas ({exp_name})\n"
+                f"Hamiltoniano de Watson + Efecto de Coriolis (C_eff = {C:.2f} MHz, %Tipo A = {wa_n*100:.1f}%, %Tipo B = {wb_n*100:.1f}%) | Global r = {corr_r:.2f}%",
+                fontsize=11.4, fontweight="bold", y=0.972
+            )
+            for idx_w, (w_lo, w_hi, m_w, w_title, rw, cw, w_col, w_rng) in enumerate(win_metrics):
+                ax = axes[idx_w]
+                if np.sum(m_w) > 2:
+                    xw = rel_ghz[m_w]
+                    ye_w = y_exp[m_w]
+                    ym_w = model[m_w]
+                    ax.plot(xw, ye_w, "o-k", markersize=4.2, lw=0.95, label=f"Experimental LIF ({exp_name})")
+                    ax.plot(xw, ym_w, "-", color=w_col, lw=1.8, label=f"Simulación Watson + Coriolis (Pearson r = {rw:.2f}% | Coseno = {cw:.1f}%)")
+                    ax.set_xlim(xw.min(), xw.max())
+                    y_lo_w = max(0.0, min(float(np.min(ye_w)), float(np.min(ym_w))) * 0.85)
+                    y_hi_w = max(float(np.max(ye_w)), float(np.max(ym_w)))
+                    ax.set_ylim(y_lo_w, y_lo_w + (y_hi_w - y_lo_w) * 1.26)
+                ax.set_title(f"{w_title} ({w_rng})  →  Pearson r = {rw:.2f}%  |  Similitud Coseno = {cw:.1f}%", fontsize=10.2, fontweight="bold", color=w_col)
+                ax.set_ylabel("Intensidad (u.a.)", fontsize=9.2, fontweight="bold")
+                if idx_w == 3:
+                    ax.set_xlabel("Desplazamiento respecto al Origen Vibrónico ν - ν₀ (GHz)", fontsize=10.2, fontweight="bold")
+                ax.legend(loc="upper right", ncol=2, fontsize=8.2, framealpha=0.94)
+                ax.grid(True, alpha=0.34)
+
+        else:
+            fig, (ax1, ax2) = plt.subplots(
+                2, 1, figsize=(11.5, 6.6), dpi=135, facecolor="white",
+                gridspec_kw={"height_ratios": [3.2, 1.15]}, sharex=True
+            )
+            fig.subplots_adjust(left=0.07, right=0.97, top=0.83, bottom=0.10, hspace=0.18)
+            for w_lo, w_hi, m_w, w_title, rw, cw, w_col, w_rng in win_metrics:
+                ax1.axvspan(w_lo, w_hi, color=w_col, alpha=0.14, label=f"{w_title}: r={rw:.1f}%")
+
+            if "Superpuesto" in style_s or "MATLAB" in style_s or ".mlx" in style_s:
+                ax1.plot(
+                    rel_ghz, y_exp,
+                    linestyle="none", marker=".", markersize=5.5, color="#0f172a", alpha=0.82,
+                    label=f"Datos Experimentales '{exp_name}'"
+                )
+                ax1.plot(
+                    rel_ghz, model,
+                    color="#0284c7", linewidth=1.85, alpha=0.95,
+                    label=f"Modelo Simulado (r = {corr_r:.2f}%)"
+                )
+                ax1.axhline(Offset, color="#94a3b8", ls=":", lw=0.9, label=f"Línea Base Offset = {Offset:.4f}")
+                ax1.set_ylabel("Señal Detector PMT (u.a.)", fontsize=9.8)
+                ax1.set_title(
+                    f"Espectro Superpuesto con Sombreado de Sub-ramas · r = {corr_r:.2f}% | RMS = {rms_err:.4f}",
+                    fontsize=10.8, fontweight="bold", pad=32
+                )
+            else:
+                y_exp_sub = np.clip(y_exp - Offset, 0.0, None)
+                exp_max = float(np.max(y_exp_sub)) if np.max(y_exp_sub) > 0 else 1.0
+                y_exp_norm = y_exp_sub / exp_max
+
+                mod_sub = np.clip(model - Offset, 0.0, None)
+                mod_max = float(np.max(mod_sub)) if np.max(mod_sub) > 0 else 1.0
+                y_mod_norm = mod_sub / mod_max
+
+                ax1.plot(rel_ghz, y_exp_norm, color="#ea580c", lw=1.25, label=f"Experimental '{exp_name}' (Arriba +Y)")
+                ax1.fill_between(rel_ghz, 0.0, y_exp_norm, color="#f97316", alpha=0.12)
+                ax1.plot(rel_ghz, -y_mod_norm, color="#1d4ed8", lw=1.35, label=f"Modelo Simulado Invertido (Abajo -Y | r = {corr_r:.2f}%)")
+                ax1.fill_between(rel_ghz, 0.0, -y_mod_norm, color="#3b82f6", alpha=0.15)
+
+                if lines_dict["Nu"].size > 0:
+                    top_mask = lines_dict["I"] >= (0.04 * np.max(lines_dict["I"]))
+                    st_ghz = (lines_dict["Nu"][top_mask] - (Nu0 + Shift)) / 1000.0
+                    st_int = (lines_dict["I"][top_mask] / np.max(lines_dict["I"])) * 0.85
+                    ax1.vlines(st_ghz, 0.0, -st_int, color="#059669", lw=0.75, alpha=0.65, label="Líneas Cuánticas Stick")
+
+                ax1.axhline(0.0, color="#1e293b", lw=1.0)
+                ax1.set_ylim(-1.12, 1.15)
+                ax1.set_ylabel("Intensidad Normalizada (+Exp / -Sim)", fontsize=9.8)
+                ax1.set_title(
+                    f"Modo Espejo con Sombreado de Sub-ramas · r = {corr_r:.2f}%",
+                    fontsize=10.8, fontweight="bold", pad=32
+                )
+
+            ax1.axvline(0.0, color="#ef4444", ls="--", lw=0.85, alpha=0.7, label="Origen ν₀ + Shift")
+            ax1.legend(bbox_to_anchor=(0.5, 1.015), loc="lower center", fontsize=7.6, ncol=3, framealpha=0.94)
+            ax1.grid(True, ls="--", alpha=0.35)
+
+            ax2.plot(rel_ghz, residuals, color="#475569", lw=0.9, alpha=0.85, label=f"Residual (Exp - Sim) | RMS = {rms_err:.4f}")
+            ax2.axhline(0.0, color="#dc2626", ls="--", lw=0.85)
+            max_r2 = max(0.05, float(np.max(np.abs(residuals))))
+            ax2.set_ylim(-max_r2 * 1.15, max_r2 * 1.45)
+            ax2.set_xlabel("Frecuencia Relativa ν - ν₀ (GHz)", fontsize=10.0)
+            ax2.set_ylabel("Residual", fontsize=9.5)
+            ax2.legend(loc="upper right", fontsize=8.0)
+            ax2.grid(True, ls="--", alpha=0.35)
 
         # Compute Ray's kappa and planar top diagnostics
         Au, Bu, Cu = A + dA, B + dB, C + dC
@@ -1492,24 +1897,40 @@ def run_asymrotor_mlx_ui(
         )
         if planar_chk and "pmt-nFLa" in exp_name:
             coriolis_line += (
-                "\n  ⚠️ NOTA FÍSICA (Trifenileno D3h): Con C = B/2 estricto se anula el término 2(B - 2C) = 0, colapsando los "
-                "sub-picos (-90.4 MHz) de cada clúster. Desmarca 'Restricción Molécula Plana' o elige el preset 'Óptimo Global FFT-DE + Coriolis C_eff' (r = 56.33%)."
+                "\n  ⚠️ NOTA FÍSICA (Simetría D3h): Con C = B/2 estricto se anula el término 2(B - 2C) = 0, colapsando los "
+                "sub-picos (-90.4 MHz). Desmarca 'Restricción Molécula Plana' para activar C_eff con acoplamiento de Coriolis."
+            )
+
+        subbranch_line = ""
+        if "pmt-nFLa" in exp_name and x_exp.size > 100:
+            r_pP, c_pP = _sub_r((rel_ghz >= -15.0) & (rel_ghz <= -12.0))
+            r_rP, c_rP = _sub_r((rel_ghz >= -6.0) & (rel_ghz <= -4.0))
+            r_Q, c_Q = _sub_r((rel_ghz >= -2.5) & (rel_ghz <= +0.14))
+            r_rR, c_rR = _sub_r((rel_ghz >= +6.5) & (rel_ghz <= +9.5))
+            sse_tot = float(np.sum(residuals ** 2))
+            subbranch_line = (
+                f"\n• Desglose por Sub-ramas (pmt-nFLa | SSE = {sse_tot:.2f}):\n"
+                f"  └─ 1) Sub-rama pP (-15 a -12 GHz): r = {r_pP:.2f}% (Cos = {c_pP:.1f}%)  |  2) Sub-rama rP (-6 a -4 GHz): r = {r_rP:.2f}% (Cos = {c_rP:.1f}%)\n"
+                f"  └─ 3) Rama Q Central (-2.5 a +0.14 GHz) [Tipo A={wa_n*100:.1f}%, Tipo B={wb_n*100:.1f}%, Tipo C={wc_n*100:.1f}%, Ganancia Q={q_gain:.2f}x, Sub-saltos={'ON' if q_subhops_chk else 'OFF'}]: r_Q = {r_Q:.2f}% (Cos = {c_Q:.1f}%)\n"
+                f"  └─ 4) Sub-rama rR (+6.5 a +9.5 GHz): r = {r_rR:.2f}% (Cos = {c_rR:.1f}%)\n"
+                f"  └─ Saltos de Modo Cuantizados (Paso Δx = 30.1227 MHz; Δν_cav ≈ -398 MHz/modo UV: n = -3 [-1185 MHz], n = -4 [-1590 MHz], n = -5 [-2106 MHz], n = -6 [-2510 MHz])"
             )
 
         report_txt = "\n".join([
-            f"✅ MOTOR ASYMROTOR (Dr. Mario Ulises Delgado-Jaime) EJECUTADO EN {elapsed_ms:.1f} ms:",
+            f"✅ SIMULACIÓN ASYMROTOR COMPLETADA EN {elapsed_ms:.1f} ms:",
             f"• Estado Base S₀:   A″ = {A:.5f} MHz | B″ = {B:.5f} MHz | C″ = {C:.5f} MHz  (κ₀ = {kappa_s0:+.4f})",
             f"• Diferencias Δ:    dA = {dA:+.5f} MHz | dB = {dB:+.5f} MHz | dC = {dC:+.5f} MHz",
             f"• Estado Excit. S₁: A′ = {Au:.5f} MHz | B′ = {Bu:.5f} MHz | C′ = {Cu:.5f} MHz  (κ₁ = {kappa_s1:+.4f})",
-            "• Condición Rotor Plano Dr. Mario [C_plano = AB/(A+B)] y Acople Vibrónico de Coriolis [C_eff = C_plano(1 + ζ_eff)]:",
+            f"• Distorsión Centrífuga Cuártica (Watson) y Coriolis: DJ = {dj_in:+.2f}×10⁻⁶ MHz, DJK = {djk_in:+.2f}×10⁻⁶ MHz, DK = {dk_in:+.2f}×10⁻⁶ MHz | ΔB_Cor = {db_cor_val:+.5f} MHz",
+            "• Relación Rotor Plano [C_plano = AB/(A+B)] y Acople Vibrónico de Coriolis [C_eff = C_plano · (1 + ζ_eff)]:",
             coriolis_line,
-            f"• Orientación Dipolar (Θ={Th:.1f}°, Φ={Ph:.1f}°): μₐ²={mu2_a:.3f}, μ_b²={mu2_b:.3f}, μ_c²={mu2_c:.3f} | Voigt FWHM = {fV:.2f} MHz (GW={GW:.2f}, LW={LW:.2f} MHz)",
-            f"• Líneas Cuánticas Activas: {lines_dict['Nu'].size:,} transiciones | Correlación Global r = {corr_r:.2f}% | Error RMS = {rms_err:.4f}"
+            f"• Orientación Dipolar P/R (Θ={Th:.1f}°, Φ={Ph:.1f}°): %Tipo A={mu2_a*100:.1f}%, %Tipo B={mu2_b*100:.1f}%, %Tipo C={mu2_c*100:.1f}% | Voigt FWHM = {fV:.2f} MHz (GW={GW:.2f}, LW={LW:.2f} MHz)",
+            f"• Líneas Cuánticas Activas: {lines_dict['Nu'].size:,} transiciones | Correlación Global r = {corr_r:.2f}% | Error RMS = {rms_err:.4f}" + subbranch_line
         ])
 
         code_snippet = "\n".join([
-            "# === 1. En Python (Google Colab / MELIORA) ===",
-            "from asymrotor import asym_rotor",
+            "# === 1. Ejecución en Python ===",
+            "from specwatson.asymrotor import asym_rotor, asym_rotor_watson",
             "y_unit, lines = asym_rotor(",
             f"    x, {A:.4f}, {B:.4f}, {C:.4f}, {dA:.4f}, {dB:.4f}, {dC:.4f},",
             f"    {Nu0:.4f} + ({Shift:.4f}), {Temp:.3f}, {Th:.1f}, {Ph:.1f}, {GW:.2f}, {LW:.2f},",
@@ -1517,7 +1938,7 @@ def run_asymrotor_mlx_ui(
             ")",
             f"model = {Int1:.2f} * y_unit + {Offset:.4f}",
             "",
-            "% === 2. En MATLAB Live Script (Simulacion_RotorRigido.mlx) ===",
+            "% === 2. Ejecución en MATLAB (AsymRotor.m) ===",
             f"model = {Int1:.2f}*AsymRotor(x, {A:.4f}, {B:.4f}, {C:.4f}, {dA:.4f}, {dB:.4f}, {dC:.4f}, ...",
             f"        {Nu0:.4f} + ({Shift:.4f}), {Temp:.3f}, {Th:.1f}, {Ph:.1f}, {GW:.2f}, {LW:.2f}, {JMax}, {Unit}, {SpinAxis}, {SpinOdd:.6f}) + {Offset:.4f};"
         ])
@@ -1544,13 +1965,61 @@ def run_asymrotor_mlx_ui(
                     f"{elow_val:.2f}",
                 ])
 
-        return fig, B, C, dB, dC, report_txt, code_snippet, table_rows
+        return fig, B, C, dB, dC, Th, Ph, report_txt, code_snippet, table_rows
 
     except Exception as e:
         fig, ax = plt.subplots(figsize=(10, 4))
         ax.text(0.5, 0.5, f"Error en AsymRotor: {str(e)}", ha="center", color="red")
         ax.axis("off")
-        return fig, B, C, dB, dC, f"Error detallado: {repr(e)}", "", []
+        return fig, B, C, dB, dC, Th, Ph, f"Error detallado: {repr(e)}", "", []
+
+
+def export_asymrotor_high_dpi(
+    preset_choice,
+    exp_choice_str,
+    uploaded_file,
+    plot_style_str,
+    A, B, C,
+    dA, dB, dC,
+    planar_chk, oblate_chk,
+    Nu0, Shift,
+    Temp, Th, Ph,
+    GW, LW, JMax,
+    unit_str, spin_axis_str, SpinOdd,
+    T2, W2,
+    Int1, Offset,
+    pct_a_q=85.0,
+    pct_b_q=15.0,
+    pct_c_q=0.0,
+    pct_scope="Solo Rama Q (Mantiene Θ, Φ en Ramas P y R)",
+    q_gain=1.0,
+    q_subhops_chk=True,
+    dj_in=1.5,
+    djk_in=-2.8,
+    dk_in=2.1,
+    db_cor_in=-0.65493,
+    dnu_cor_in=-1855.43,
+    export_format_str="PNG (600 DPI)"
+):
+    """Exports the current plot at 300/600 DPI PNG or vector PDF."""
+    fig, *_ = run_asymrotor_mlx_ui(
+        preset_choice, exp_choice_str, uploaded_file, plot_style_str,
+        A, B, C, dA, dB, dC,
+        planar_chk, oblate_chk,
+        Nu0, Shift, Temp, Th, Ph,
+        GW, LW, JMax, unit_str, spin_axis_str, SpinOdd,
+        T2, W2, Int1, Offset,
+        pct_a_q, pct_b_q, pct_c_q, pct_scope, q_gain, q_subhops_chk,
+        dj_in, djk_in, dk_in, db_cor_in, dnu_cor_in
+    )
+    fmt_str = str(export_format_str)
+    dpi_val = 600 if "600" in fmt_str else 300
+    ext = "pdf" if "PDF" in fmt_str.upper() else "png"
+    tag = "Zoom_4_Subramas" if "Acercamiento" in str(plot_style_str) else "Vista_General_Subramas"
+    out_path = os.path.join(tempfile.gettempdir(), f"Untitled_Project_{tag}_{dpi_val}DPI.{ext}")
+    fig.savefig(out_path, dpi=dpi_val, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return out_path
 
 
 def plot_convergent_grid_figure(fit_res: dict, exp_name: str = "Datos Experimentales"):
@@ -1659,6 +2128,17 @@ def optimize_asymrotor_mlx_ui(
     unit_str, spin_axis_str, SpinOdd,
     T2, W2,
     Int1, Offset,
+    pct_a_q=85.0,
+    pct_b_q=15.0,
+    pct_c_q=0.0,
+    pct_scope="Solo Rama Q (Mantiene Θ, Φ en Ramas P y R)",
+    q_gain=1.0,
+    q_subhops_chk=True,
+    dj_in=1.5,
+    djk_in=-2.8,
+    dk_in=2.1,
+    db_cor_in=-0.65493,
+    dnu_cor_in=-1855.43,
     grid_size=5,
     n_levels=3,
     span_p1=0.60,
@@ -1666,8 +2146,7 @@ def optimize_asymrotor_mlx_ui(
     span_shift=120.0
 ):
     """
-    Executes the Convergent Grid Method (Método de Rejilla Convergente) designed for
-    Dr. Mario Ulises Delgado-Jaime's `AsymRotor` engine, leveraging LRU eigenvalue caching
+    Executes the Convergent Grid Method (Método de Rejilla Convergente), leveraging LRU eigenvalue caching
     and fast shift-interpolation to find the global rotational-constant minimum across
     nested coarse-to-fine grids, followed by local sub-grid refinement.
     """
@@ -1719,14 +2198,16 @@ def optimize_asymrotor_mlx_ui(
     int1_opt = round(float(best_d["int1"]), 2)
     off_opt = round(float(best_d["offset"]), 5)
 
-    fig, B_out, C_out, dB_out, dC_out, rep_txt, code_txt, tbl = run_asymrotor_mlx_ui(
+    fig, B_out, C_out, dB_out, dC_out, Th_out, Ph_out, rep_txt, code_txt, tbl = run_asymrotor_mlx_ui(
         preset_choice, exp_choice_str, uploaded_file, plot_style_str,
         A_opt, B_opt, C_opt, da_opt, db_opt, dc_opt,
         planar_chk, oblate_chk,
         Nu0, sh_opt,
         Temp, Th, Ph, GW, LW, JMax,
         unit_str, spin_axis_str, SpinOdd, T2, W2,
-        int1_opt, off_opt
+        int1_opt, off_opt,
+        pct_a_q, pct_b_q, pct_c_q, pct_scope, q_gain, q_subhops_chk,
+        dj_in, djk_in, dk_in, db_cor_in, dnu_cor_in
     )
 
     fig_grid = plot_convergent_grid_figure(fit_res, exp_name=exp_name)
@@ -1775,31 +2256,29 @@ def optimize_asymrotor_mlx_ui(
 def build_gradio_app():
     import gradio as gr
 
-    with gr.Blocks(title="MELIORA · Molecular Electronic & Laser Interactions with Optimized Ro-vibronic Analysis") as demo:
+    with gr.Blocks(title="Untitled Project · Espectroscopía Rovibrónica de Alta Resolución") as demo:
         gr.Markdown(
             """
-            # 🔬 MELIORA
-            ### **M**olecular **E**lectronic & **L**aser **I**nteractions with **O**ptimized **R**o-vibronic **A**nalysis
-            **Universidad de Guanajuato · División de Ciencias e Ingenierías (Campus León)**  
-            *Suite Computacional para Espectroscopía Rovibrónica de Alta Resolución, Asignación Cuántica JB95 & Optimización Global*
+            # 🔬 Untitled Project
+            ### **Simulación y Análisis de Espectros Rovibrónicos de Alta Resolución**
             """
         )
 
-        with gr.Tabs() as main_tabs:
+        with gr.Tabs(selected="tab_asymrotor") as main_tabs:
             # =========================================================================
             # TAB 1: SIMULACIÓN DIRECTA DE ESPECTROS (WANG) + ARCHIVOS ESPECTRÓMETRO
             # =========================================================================
-            with gr.TabItem("⚡ 1. Simulador Cuántico", id="tab_sim"):
+            with gr.TabItem("⚡ Simulador Hamiltoniano", id="tab_sim"):
                 with gr.Row():
                     preset_dropdown = gr.Dropdown(
                         choices=list(PRESETS.keys()),
-                        value="Carbazol (Álvarez-Valtierra & Pratt 2006 | Datos Reales PmtFla & IAR.asc)",
-                        label="📁 1. Sistema Molecular (Incluye Datos Experimentales Reales de Carbazol del Dr. Leonardo)",
+                        value=list(PRESETS.keys())[0],
+                        label="1. Sistema Molecular",
                         scale=3
                     )
                     show_sim_chk = gr.Checkbox(
                         value=True,
-                        label="🔵 Mostrar Simulado (MELIORA)",
+                        label="🔵 Mostrar Simulado",
                         scale=1
                     )
                     overlay_exp_chk = gr.Checkbox(
@@ -1809,56 +2288,59 @@ def build_gradio_app():
                     )
                     mirror_exp_chk = gr.Checkbox(
                         value=True,
-                        label="🪞 Modo Espejo JCP (Exp Arriba +Y / Sim Abajo -Y)",
+                        label="🪞 Modo Espejo (+Exp Arriba / -Sim Abajo)",
                         scale=1
                     )
 
                 with gr.Row():
                     hamiltonian_dropdown = gr.Dropdown(
                         choices=HAMILTONIAN_CHOICES,
-                        value=HAMILTONIAN_CHOICES[0],
-                        label="⚙️ 2. Método Hamiltoniano (Rotor Rígido Puro vs. Distorsión Centrífuga de Watson)",
+                        value=HAMILTONIAN_CHOICES[1],
+                        label="2. Modelo Hamiltoniano",
                         scale=2
                     )
                     band_type_dropdown = gr.Dropdown(
                         choices=BAND_TYPE_CHOICES,
-                        value=BAND_TYPE_CHOICES[0],
-                        label="🎯 3. Criterio de Selección de Espectros (Tipo a, Tipo b, Tipo c o Híbrido)",
+                        value=BAND_TYPE_CHOICES[3],
+                        label="3. Reglas de Selección (Tipo a, Tipo b, Tipo c o Híbrido)",
                         scale=2
                     )
                     exp_source_dropdown = gr.Dropdown(
                         choices=EXP_SOURCE_CHOICES,
-                        value=EXP_SOURCE_CHOICES[0],
-                        label="📡 4. Fuente de Datos Experimentales a Comparar",
+                        value=EXP_SOURCE_CHOICES[1],
+                        label="4. Datos Experimentales a Comparar",
                         scale=2
                     )
 
                 with gr.Row():
                     with gr.Column(scale=1):
-                        gr.Markdown("### Estado Basal (S₀) y Excitado (S₁) - MHz")
+                        gr.Markdown("### Estado Basal (S₀) y Excitado (S₁) — MHz")
                         with gr.Row():
-                            a0 = gr.Number(value=2253.2409, label="A″ Basal (MHz)")
-                            b0 = gr.Number(value=594.2103, label="B″ Basal (MHz)")
-                            c0 = gr.Number(value=470.3670, label="C″ Basal (MHz)")
+                            a0 = gr.Number(value=506.8885, label="A″ Basal (MHz)")
+                            b0 = gr.Number(value=506.4470, label="B″ Basal (MHz)")
+                            c0 = gr.Number(value=279.8420, label="C″ Basal (MHz)")
 
                         with gr.Row():
-                            a1 = gr.Number(value=2250.6104, label="A′ Excitado (MHz)")
-                            b1 = gr.Number(value=586.3482, label="B′ Excitado (MHz)")
-                            c1 = gr.Number(value=465.2923, label="C′ Excitado (MHz)")
+                            a1 = gr.Number(value=503.7935, label="A′ Excitado (MHz)")
+                            b1 = gr.Number(value=503.3475, label="B′ Excitado (MHz)")
+                            c1 = gr.Number(value=278.3808, label="C′ Excitado (MHz)")
 
-                        gr.Markdown("### Condiciones del Jet Supersónico")
+                        gr.Markdown("### Condiciones del Haz Supersónico")
                         with gr.Row():
-                            trot = gr.Slider(0.5, 15.0, value=2.6, step=0.1, label="Temp. Rotacional (K)")
-                            fwhm = gr.Slider(5.0, 80.0, value=45.0, step=1.0, label="Ancho Láser FWHM (MHz)")
-                            jmax = gr.Slider(4, 40, value=22, step=1, label="J Máximo")
+                            trot = gr.Slider(0.5, 15.0, value=3.04, step=0.05, label="Temp. Rotacional (K)")
+                            fwhm = gr.Slider(5.0, 80.0, value=31.5, step=0.5, label="Ancho FWHM (MHz)")
+                            jmax = gr.Slider(4, 40, value=32, step=1, label="J Máximo")
 
                         gr.Markdown("### Pesos Dipolares de Transición (μₐ², μ_b², μ_c²)")
                         with gr.Row():
-                            mu_a = gr.Slider(0.0, 1.0, value=0.0, step=0.05, label="μₐ² (Tipo a)")
-                            mu_b = gr.Slider(0.0, 1.0, value=1.0, step=0.05, label="μ_b² (Tipo b)")
-                            mu_c = gr.Slider(0.0, 1.0, value=0.0, step=0.05, label="μ_c² (Tipo c)")
+                            mu_a = gr.Slider(0.0, 1.0, value=0.50, step=0.01, label="μₐ² (Tipo a)")
+                            mu_b = gr.Slider(0.0, 1.0, value=0.50, step=0.01, label="μ_b² (Tipo b)")
+                            mu_c = gr.Slider(0.0, 1.0, value=0.0, step=0.01, label="μ_c² (Tipo c)")
 
-                        with gr.Accordion("🔬 Constantes de Distorsión Centrífuga de Watson (Se apagan a 0 en Rotor Rígido)", open=False):
+                        with gr.Accordion("🔬 Hamiltoniano de Watson (Distorsión Centrífuga Cuártica) + Efecto de Coriolis", open=True):
+                            gr.Markdown(
+                                "*Términos cuárticos de distorsión centrífuga (ΔJ, ΔJK, ΔK, δJ, δK) y acoplamiento vibrónico de Coriolis sobre el eje de simetría (C_eff = C_plano · (1 + ζ_eff) = AB/(A+B) + ΔC_Coriolis):*"
+                            )
                             with gr.Row():
                                 dJ_in = gr.Number(value=0.25, label="ΔJ (kHz)")
                                 dJK_in = gr.Number(value=-0.60, label="ΔJK (kHz)")
@@ -1867,36 +2349,36 @@ def build_gradio_app():
                                 delJ_in = gr.Number(value=0.04, label="δJ (kHz)")
                                 delK_in = gr.Number(value=0.30, label="δK (kHz)")
 
-                        with gr.Accordion("📤 Cargar Archivos Directos del Espectrómetro (.asc, PmtFla, .dat, .csv)", open=True):
+                        with gr.Accordion("📤 Cargar Archivo del Espectrómetro (.asc, PmtFla, .dat, .csv)", open=False):
                             gr.Markdown(
-                                "*Sube cualquier archivo crudo del espectrómetro (`PmtFla`, `.dat`, `.csv`) o lista de líneas de JB95 (`.asc` como `IAR.asc`):*"
+                                "*Selecciona un archivo crudo del espectrómetro (`PmtFla`, `pmt-nFLa`, `.dat`, `.csv`) o lista de líneas (`.asc`):*"
                             )
                             exp_file_upload = gr.File(
-                                label="Subir Archivo del Espectrómetro (.asc, PmtFla, .dat, .txt, .csv)",
+                                label="Subir Archivo (.asc, PmtFla, .dat, .txt, .csv)",
                                 file_count="single"
                             )
                             btn_load_exp = gr.Button(
-                                "📥 Procesar Archivo Experimental y Extraer Constantes",
+                                "📥 Procesar Archivo Experimental",
                                 variant="secondary",
                                 size="sm"
                             )
                             upload_status_out = gr.Textbox(
-                                label="Estado del Archivo Experimental Cargado",
-                                value="✅ Pre-cargados en memoria: 'recursos/PmtFla' (1,919 puntos espectrómetro) y 'recursos/IAR.asc' (2,705 líneas JB95 Tipo B).",
+                                label="Estado del Archivo Cargado",
+                                value="✅ Archivos disponibles en memoria: 'recursos/pmt-nFLa' (1,423 pts) y 'recursos/PmtFla' (1,919 pts).",
                                 lines=2
                             )
 
-                        btn_sim = gr.Button("⚡ Simular y Comparar Espectro Cuántico", variant="primary", size="lg")
-                        btn_goto_assign = gr.Button("🎯 Ir a Asignación Automática de Líneas (.asc / JB95) desde PmtFla →", variant="secondary")
+                        btn_sim = gr.Button("⚡ Simular y Comparar Espectro", variant="primary", size="lg")
+                        btn_goto_assign = gr.Button("🎯 Ir a Asignación de Líneas →", variant="secondary", visible=False)
 
                     with gr.Column(scale=2):
-                        plot_out = gr.Plot(label="Espectro Experimental (Arriba +Y) vs. Simulado MELIORA (Abajo -Y)")
+                        plot_out = gr.Plot(show_label=False)
 
-                        with gr.Accordion("🎛️ Controles de Visualización: Sub-bandas (a/b/c), Opacidad, Offset, Zoom y Exportación (300/600 DPI)", open=True):
+                        with gr.Accordion("🎛️ Controles de Visualización: Sub-bandas (a/b/c), Opacidad, Offset, Zoom y Exportación", open=True):
                             with gr.Row():
                                 show_subbands_chk = gr.Checkbox(
                                     value=False,
-                                    label="🎨 Desglosar sub-espectros individuales Tipo a, Tipo b y Tipo c en la gráfica",
+                                    label="🎨 Desglosar sub-espectros individuales Tipo a, Tipo b y Tipo c",
                                     scale=2
                                 )
                                 alpha_sim_slider = gr.Slider(0.05, 1.0, value=0.85, step=0.05, label="🔵 Opacidad Simulado", scale=1)
@@ -1910,28 +2392,27 @@ def build_gradio_app():
                                 pan_y_slider = gr.Slider(-1.0, 1.0, value=0.0, step=0.05, label="↕️ Desplazar Vista Arriba / Abajo")
 
                             with gr.Row():
-                                btn_reset_view = gr.Button("🔄 Restablecer Vista / Zoom / Opacidad", variant="secondary", scale=1)
+                                btn_reset_view = gr.Button("🔄 Restablecer Vista", variant="secondary", scale=1)
                                 export_dpi_dropdown = gr.Dropdown(
                                     choices=[
-                                        "600 DPI — PNG Ultra-Alta Resolución (Calidad Revista JCP)",
-                                        "300 DPI — PNG Alta Resolución (Tesis / Presentación)",
-                                        "600 DPI — PDF Vectorial (Artículo LaTeX)"
+                                        "PNG (600 DPI)",
+                                        "PNG (300 DPI)",
+                                        "PDF Vectorial"
                                     ],
-                                    value="600 DPI — PNG Ultra-Alta Resolución (Calidad Revista JCP)",
-                                    label="🖨️ Formato y Resolución de Exportación",
+                                    value="PNG (600 DPI)",
+                                    label="🖨️ Formato de Exportación",
                                     scale=2
                                 )
-                                btn_export_dpi = gr.Button("📥 Exportar Gráfica Actual (300 / 600 DPI)", variant="primary", scale=1)
+                                btn_export_dpi = gr.Button("📥 Exportar Gráfica", variant="primary", scale=1)
 
-                            export_file_out = gr.File(label="📄 Archivo Exportado (Haz clic en el enlace derecho para descargar a tu PC)")
+                            export_file_out = gr.File(label="📄 Archivo Exportado")
 
-                        stats_out = gr.Textbox(label="Diagnóstico Cuántico: Método, Reglas de Selección (a/b/c), Factor κ y Correlación Experimental", lines=7)
-                        gr.Markdown("💡 *Para consultar la fundamentación teórica de reglas de selección, factor κ y Hamiltoniano de Watson, visita la pestaña **📖 5. Manual y Ayuda**.*")
+                        stats_out = gr.Textbox(label="Diagnóstico del Modelo: Hamiltoniano de Watson + Efecto de Coriolis, Reglas de Selección, Factor κ y Correlación", lines=7)
 
             # =========================================================================
-            # TAB 2: ESTACIÓN INTERACTIVA JB95 + BARRIDO POR EVOLUCIÓN DIFERENCIAL (.asc)
+            # TAB 2: ESTACIÓN INTERACTIVA JB95 + BARRIDO POR EVOLUCIÓN DIFERENCIAL (.asc) (OCULTA)
             # =========================================================================
-            with gr.TabItem("🎯 2. Estación JB95 & Evolución Diferencial (.asc)", id="tab_fit"):
+            with gr.TabItem("🎯 2. Estación JB95 & Evolución Diferencial (.asc)", id="tab_fit", visible=False):
                 gr.Markdown("### 🎛️ Estación de Trabajo Interactiva Tipo JB95 & Asignación Cuántica por Evolución Diferencial")
 
                 with gr.Group():
@@ -2049,8 +2530,8 @@ def build_gradio_app():
                         with gr.Column(scale=1):
                             fit_mol = gr.Dropdown(
                                 choices=list(PRESETS.keys())[:9],
-                                value="Carbazol (Álvarez-Valtierra & Pratt 2006 | Datos Reales PmtFla & IAR.asc)",
-                                label="1. Molécula Objetivo (Incluye Carbazol Dr. Leonardo)"
+                                value=list(PRESETS.keys())[0],
+                                label="1. Molécula Objetivo"
                             )
                             fit_band_dropdown = gr.Dropdown(
                                 choices=BAND_TYPE_CHOICES,
@@ -2071,9 +2552,9 @@ def build_gradio_app():
                             fit_report_out = gr.Textbox(label="Parámetros Moleculares Recuperados vs. Referencia Experimental", lines=7)
 
             # =========================================================================
-            # TAB 3: QUÍMICA CUÁNTICA 3D & DIBUJO MOLECULAR (TENSOR DE INERCIA -> A,B,C)
+            # TAB 3: QUÍMICA CUÁNTICA 3D & DIBUJO MOLECULAR (TENSOR DE INERCIA -> A,B,C) (OCULTA)
             # =========================================================================
-            with gr.TabItem("🧪 3. Geometría 3D & Química Cuántica", id="tab_qchem"):
+            with gr.TabItem("🧪 3. Geometría 3D & Química Cuántica", id="tab_qchem", visible=False):
                 gr.Markdown("### 🧪 Geometría 3D, Tensor de Inercia Isotópico & Estimación de Constantes Rotacionales (A, B, C)")
                 with gr.Row():
                     with gr.Column(scale=1):
@@ -2125,73 +2606,120 @@ def build_gradio_app():
 
 
             # =========================================================================
-            # TAB 4: MODO ASYMROTOR (.mlx / MATLAB Dr. Mario Delgado-Jaime & Trifenileno)
+            # TAB 4: MODO ASYMROTOR (Simulación y Análisis de Sub-ramas)
             # =========================================================================
-            with gr.TabItem("📐 4. Modo AsymRotor (Dr. Mario .mlx & Trifenileno)", id="tab_asymrotor"):
-                gr.Markdown("### 📐 Motor Exacto `AsymRotor` & Método de Rejilla Convergente (Multigrid Coarse-to-Fine)")
+            with gr.TabItem("📐 AsymRotor (Simulación y Sub-ramas)", id="tab_asymrotor"):
+                gr.Markdown("### 📐 Motor `AsymRotor` · Hamiltoniano Efectivo de Watson + Efecto de Coriolis (C_eff, ζ_eff) & Rejilla Convergente")
                 with gr.Row():
                     ar_preset = gr.Dropdown(
                         choices=list(ASYMROTOR_MLX_PRESETS.keys()),
                         value=list(ASYMROTOR_MLX_PRESETS.keys())[0],
-                        label="1. Configuración Pre-cargada (.mlx Carbazol Dr. Mario / IAR.asc Dr. Leonardo / Trifenileno D3h)",
+                        label="1. Configuración Pre-cargada",
                         scale=2
                     )
                     ar_exp_source = gr.Dropdown(
                         choices=[
-                            "📡 Espectrómetro Pre-cargado: PmtFla (Carbazol)",
-                            "📡 Espectrómetro Pre-cargado: pmt-nFLa (Trifenileno Crudo)",
-                            "📤 Archivo Experimental Subido (Nuevo Escaneo)"
+                            "pmt-nFLa (Trifenileno)",
+                            "PmtFla (Carbazol)",
+                            "Archivo Experimental Subido"
                         ],
-                        value="📡 Espectrómetro Pre-cargado: PmtFla (Carbazol)",
+                        value="pmt-nFLa (Trifenileno)",
                         label="2. Datos Experimentales (x, y)",
                         scale=1
                     )
                     ar_plot_style = gr.Dropdown(
                         choices=[
-                            "Vista Clásica MATLAB Live Script (.mlx): Puntos Negros Exp + Curva Azul Superpuesta",
-                            "Vista Espejo Estándar JCP: Experimental Arriba (+Y) vs. AsymRotor Abajo (-Y) + Sticks"
+                            "Vista General + Sub-ramas (pP, rP, Q, rR)",
+                            "Acercamiento de Sub-ramas (4 Paneles)",
+                            "Espectro Superpuesto + Residuales",
+                            "Modo Espejo (+Exp / -Sim)"
                         ],
-                        value="Vista Clásica MATLAB Live Script (.mlx): Puntos Negros Exp + Curva Azul Superpuesta",
+                        value="Vista General + Sub-ramas (pP, rP, Q, rR)",
                         label="3. Estilo de Visualización",
                         scale=2
                     )
 
                 with gr.Row():
                     with gr.Column(scale=1):
-                        gr.Markdown("#### Constantes Estado Base $S_0$ ($A, B, C$) y Diferencias Descorrelacionadas ($dA, dB, dC$)")
+                        gr.Markdown("#### Constantes de Estado Base S₀ (A, B, C_eff) y Diferencias (dA, dB, dC)")
                         with gr.Row():
-                            ar_A = gr.Number(value=2253.8000, label="A (MHz) [S₀]")
-                            ar_B = gr.Number(value=594.0000, label="B (MHz) [S₀]")
-                            ar_C = gr.Number(value=470.8000, label="C (MHz) [S₀]")
+                            ar_A = gr.Number(value=506.88854, label="A (MHz) [S₀]")
+                            ar_B = gr.Number(value=506.44695, label="B (MHz) [S₀]")
+                            ar_C = gr.Number(value=279.84195, label="C_eff (MHz) [S₀]")
                         with gr.Row():
-                            ar_dA = gr.Number(value=-2.5700, label="dA = A′ - A (MHz)")
-                            ar_dB = gr.Number(value=-7.8950, label="dB = B′ - B (MHz)")
-                            ar_dC = gr.Number(value=-5.0650, label="dC = C′ - C (MHz)")
+                            ar_dA = gr.Number(value=-3.09507, label="dA = A′ - A (MHz)")
+                            ar_dB = gr.Number(value=-3.09941, label="dB = B′ - B (MHz)")
+                            ar_dC = gr.Number(value=-1.46120, label="dC = C′ - C (MHz)")
 
                         with gr.Row():
                             ar_planar_chk = gr.Checkbox(
                                 value=False,
-                                label="📐 Restricción Molécula Plana (Dr. Mario): C = A·B / (A + B)"
+                                label="📐 Restricción Molécula Plana Rígida: C = A·B / (A + B)"
                             )
                             ar_oblate_chk = gr.Checkbox(
                                 value=False,
-                                label="💿 Trompo Simétrico Oblato (Trifenileno): B = A, dB = dA (κ = +1)"
+                                label="💿 Rotor Simétrico Oblato Estricto: B = A, dB = dA (κ = +1)"
                             )
 
-                        gr.Markdown(r"#### Origen ($\nu_0$), Calibración (`Shift`), Temperatura y Orientación Dipolar ($\Theta, \Phi$)")
+                        with gr.Accordion("🌀 Hamiltoniano de Watson (Distorsión Centrífuga Cuártica) + Efecto de Coriolis (C_eff, ζ_eff, ΔB_Cor)", open=True):
+                            gr.Markdown(
+                                """
+                                * **Acoplamiento Vibrónico de Coriolis en Eje c:**  
+                                  `C_eff = C_plano · (1 + ζ_eff) = AB / (A + B) + ΔC_Coriolis`  
+                                  Para `pmt-nFLa`, `C_plano = 253.3338 MHz` se renormaliza a **`C_eff = 279.8420 MHz`** (`ΔC_Coriolis = +26.5081 MHz`, `ζ_eff = +0.1046`), resolviendo la estructura fina de las 4 sub-ramas (`pP`, `rP`, `Q`, `rR`).
+                                * **Constantes Cuárticas de Distorsión Centrífuga (Watson Reducción A) y Términos de Coriolis:**
+                                """
+                            )
+                            with gr.Row():
+                                ar_DJ = gr.Number(value=1.5, step=0.1, label="D_J (×10⁻⁶ MHz)")
+                                ar_DJK = gr.Number(value=-2.8, step=0.1, label="D_JK (×10⁻⁶ MHz)")
+                                ar_DK = gr.Number(value=2.1, step=0.1, label="D_K (×10⁻⁶ MHz)")
+                            with gr.Row():
+                                ar_dB_Cor = gr.Number(value=-0.65493, step=0.01, label="ΔB_Cor (MHz)")
+                                ar_dNu_Cor = gr.Number(value=-1855.43, step=1.0, label="Δν_Cor (MHz)")
+
+                        gr.Markdown("#### Origen (ν₀), Calibración (Shift), Temperatura y Orientación Dipolar (Θ, Φ)")
                         with gr.Row():
-                            ar_Nu0 = gr.Number(value=923604613.0, label="Nu0 (Origen de Banda, MHz)")
-                            ar_Shift = gr.Number(value=0.0, label="Shift (Corrimiento, MHz)")
-                            ar_Temp = gr.Number(value=3.2, label="Temp (Trot, K)")
+                            ar_Nu0 = gr.Number(value=910238000.0, label="Nu0 (Origen de Banda, MHz)")
+                            ar_Shift = gr.Number(value=1915.43, label="Shift (Corrimiento, MHz)")
+                            ar_Temp = gr.Number(value=3.04, label="Temp (Trot, K)")
 
                         with gr.Row():
-                            ar_Th = gr.Slider(0.0, 90.0, value=90.0, step=1.0, label="Theta Θ (° desde eje a) [a:0°, b:90°, c:90°]")
-                            ar_Ph = gr.Slider(0.0, 90.0, value=0.0, step=1.0, label="Phi Φ (° de b hacia c) [a:0°, b:0°, c:90°]")
+                            ar_Th = gr.Slider(0.0, 90.0, value=44.8, step=0.1, label="Theta Θ (° desde eje a) [a:0°, a/b:44.8°, b:90°]")
+                            ar_Ph = gr.Slider(0.0, 90.0, value=0.0, step=0.1, label="Phi Φ (° de b hacia c) [a:0°, b:0°, c:90°]")
 
-                        gr.Markdown("#### Anchos Voigt Exacto FFT (`GW`, `LW`), Espín Nuclear $C_2$ y Escala Detector (`Int1`, `Offset`)")
+                        with gr.Accordion("🎯 Porcentaje de Reglas de Selección (% Tipo A, B, C) y Ajuste de Rama Q", open=True):
+                            gr.Markdown(
+                                "*Ajusta libremente (deslizando con paso de `0.1%` o escribiendo el valor exacto) la proporción relativa de transiciones **Tipo A** (ΔKₐ = par), **Tipo B** (ΔKₐ = impar) y **Tipo C**, así como el alcance de la mezcla y la ganancia de la Rama Q:*"
+                            )
+                            ar_pct_scope = gr.Radio(
+                                choices=[
+                                    "Solo Rama Q (Mantiene Θ, Φ en Ramas P y R)",
+                                    "Todo el Espectro (Ramas P, Q y R)"
+                                ],
+                                value="Solo Rama Q (Mantiene Θ, Φ en Ramas P y R)",
+                                label="Alcance de la Modulación de Porcentajes (% Tipo A / B / C)"
+                            )
+                            with gr.Row():
+                                ar_pct_a_q = gr.Slider(0.0, 100.0, value=85.0, step=0.1, label="% Líneas Tipo A")
+                                ar_pct_b_q = gr.Slider(0.0, 100.0, value=15.0, step=0.1, label="% Líneas Tipo B")
+                                ar_pct_c_q = gr.Slider(0.0, 100.0, value=0.0, step=0.1, label="% Líneas Tipo C")
+                            with gr.Row():
+                                ar_q_gain = gr.Slider(0.20, 2.50, value=1.00, step=0.01, label="Factor de Escala / Ganancia Rama Q (×)")
+                                ar_q_subhops_chk = gr.Checkbox(
+                                    value=True,
+                                    label="⚡ Resolver Sub-Saltos de Modo Cuantizados en Rama Q (Δν_cav ≈ 398 MHz)"
+                                )
+                            with gr.Row():
+                                btn_q_leo_opt = gr.Button("85% A / 15% B", variant="primary", size="sm")
+                                btn_q_base50 = gr.Button("50% A / 50% B", variant="secondary", size="sm")
+                                btn_q_pureA = gr.Button("100% Tipo A", variant="secondary", size="sm")
+                                btn_q_pureB = gr.Button("100% Tipo B", variant="secondary", size="sm")
+
+                        gr.Markdown("#### Anchos Voigt FFT (GW, LW), Espín Nuclear C₂ y Escala del Detector (Int1, Offset)")
                         with gr.Row():
-                            ar_GW = gr.Number(value=37.0, label="GW (Gaussiano Doppler, MHz)")
-                            ar_LW = gr.Number(value=5.2, label="LW (Lorentziano Vida Media, MHz)")
+                            ar_GW = gr.Number(value=31.53, label="GW (Gaussiano Doppler, MHz)")
+                            ar_LW = gr.Number(value=3.10, label="LW (Lorentziano Vida Media, MHz)")
                             ar_JMax = gr.Number(value=50, label="JMax (0 = Automático)")
 
                         with gr.Row():
@@ -2199,21 +2727,21 @@ def build_gradio_app():
                                 choices=[
                                     "0 — Ninguno (Sin pesos de espín)",
                                     "1 — Eje a (Rotación C₂ sobre a)",
-                                    "2 — Eje b (Simetría C₂v Carbazol)",
+                                    "2 — Eje b (Simetría C₂)",
                                     "3 — Eje c (Rotación C₂ sobre c)"
                                 ],
-                                value="2 — Eje b (Simetría C₂v Carbazol)",
+                                value="2 — Eje b (Simetría C₂)",
                                 label="SpinAxis (Eje C₂)"
                             )
-                            ar_SpinOdd = gr.Number(value=round(15.0 / 17.0, 6), label="SpinOdd (Carbazol: 15/17 ≈ 0.882353)")
+                            ar_SpinOdd = gr.Number(value=2.0, label="SpinOdd (Pesos Espín Nuclear)")
 
                         with gr.Row():
-                            ar_Int1 = gr.Number(value=9130.0, label="Int1 (Área Integrada Detector)")
-                            ar_Offset = gr.Number(value=0.071, label="Offset (Línea Base Detector)")
+                            ar_Int1 = gr.Number(value=5926.664, label="Int1 (Área Integrada Detector)")
+                            ar_Offset = gr.Number(value=0.1962, label="Offset (Línea Base Detector)")
 
-                        with gr.Accordion("🎯 Método de Rejilla Convergente (Multigrid Coarse-to-Fine + Caché LRU AsymRotor)", open=True):
+                        with gr.Accordion("🎯 Método de Rejilla Convergente (Multigrid Coarse-to-Fine + Caché LRU)", open=False):
                             gr.Markdown(
-                                "*Evalúa una rejilla 2D de constantes rotacionales reutilizando la diagonalización del Hamiltoniano (1 sola construcción por nodo para 21 corrimientos `Shift`) y reduce iterativamente la ventana de búsqueda hacia el mínimo global:*"
+                                "*Evalúa una rejilla 2D de constantes rotacionales reutilizando la diagonalización del Hamiltoniano y reduce iterativamente la ventana de búsqueda hacia el mínimo global:*"
                             )
                             with gr.Row():
                                 ar_grid_size = gr.Slider(3, 9, value=5, step=2, label="Rejilla N×N por Nivel")
@@ -2223,43 +2751,56 @@ def build_gradio_app():
                                 ar_span_p2 = gr.Number(value=0.60, label="Rango Inicial ±Δp₂ (MHz) [dB o dA]")
                                 ar_span_shift = gr.Number(value=120.0, label="Rango Shift ±Δν₀ (MHz)")
 
-                        with gr.Accordion("⚙️ Opciones Avanzadas AsymRotor: Modelo de 2 Temperaturas (T2, W2), Unidades y Subir Archivo (Trifenileno)", open=False):
+                        with gr.Accordion("⚙️ Opciones Avanzadas: Modelo de 2 Temperaturas (T2, W2), Unidades y Subir Archivo", open=False):
                             with gr.Row():
                                 ar_Unit = gr.Dropdown(
                                     choices=["1 — MHz (Estándar)", "2 — GHz", "3 — cm⁻¹"],
                                     value="1 — MHz (Estándar)",
                                     label="Unit (Unidades)"
                                 )
-                                ar_T2 = gr.Number(value=0.0, label="T2 (Segunda Temp. Haz, K)")
-                                ar_W2 = gr.Number(value=0.0, label="W2 (Peso de T2)")
+                                ar_T2 = gr.Number(value=12.0, label="T2 (Segunda Temp. Haz, K)")
+                                ar_W2 = gr.Number(value=0.0501, label="W2 (Peso de T2)")
                             ar_upload_file = gr.File(
-                                label="Subir Archivo Experimental (Trifenileno o nuevo barrido: 2 columnas Frecuencia vs Intensidad)",
+                                label="Subir Archivo Experimental (2 columnas: Frecuencia vs Intensidad)",
                                 file_count="single"
                             )
 
-                        btn_ar_sim = gr.Button("⚡ Evaluar Modelo AsymRotor (.mlx / Python Exacto)", variant="primary", size="lg")
-                        btn_ar_fit = gr.Button("🎯 Ejecutar Método de Rejilla Convergente (Multigrid Coarse-to-Fine + Pulido)", variant="secondary", size="lg")
+                        btn_ar_sim = gr.Button("⚡ Evaluar Modelo AsymRotor", variant="primary", size="lg")
+                        btn_ar_fit = gr.Button("🎯 Ejecutar Método de Rejilla Convergente", variant="secondary", size="lg")
 
                     with gr.Column(scale=2):
-                        ar_plot_out = gr.Plot(label="Simulación AsymRotor vs. Datos Experimentales + Residuales")
-                        ar_grid_plot_out = gr.Plot(label="🎯 Mapa 2D del Método de Rejilla Convergente (Exploración Multinivel L₁→Lₖ y Superficie RMS)")
+                        ar_plot_out = gr.Plot(show_label=False)
+                        with gr.Row():
+                            ar_export_format = gr.Dropdown(
+                                choices=[
+                                    "PNG (600 DPI)",
+                                    "PNG (300 DPI)",
+                                    "PDF Vectorial"
+                                ],
+                                value="PNG (600 DPI)",
+                                label="🖨️ Formato de Exportación",
+                                scale=2
+                            )
+                            btn_ar_export = gr.Button("📥 Exportar Gráfica (300 / 600 DPI)", variant="primary", scale=1)
+                        ar_export_file_out = gr.File(label="📄 Archivo Exportado")
+                        ar_grid_plot_out = gr.Plot(show_label=False)
                         ar_report_out = gr.Textbox(
-                            label="Diagnóstico Físico AsymRotor: Factor κ de Ray, Condición de Rotor Plano C = AB/(A+B), Bitácora Multinivel y Error RMS",
+                            label="Diagnóstico Físico: Hamiltoniano de Watson + Efecto de Coriolis (C_eff, ζ_eff), Correlación por Sub-ramas y Error RMS",
                             lines=9
                         )
                         ar_code_out = gr.Textbox(
-                            label="Código Equivalente en Vivo (Listo para copiar a Google Colab en Python o a MATLAB Live Script .mlx)",
+                            label="Código Equivalente (Python / MATLAB)",
                             lines=9
                         )
                         ar_table_out = gr.Dataframe(
                             headers=["Tipo", "Nivel Sup (J' Ka' Kc')", "Nivel Inf (J'' Ka'' Kc'')", "Freq Abs (MHz)", "Δν Rel (MHz)", "Intensidad Norm", "E_low (MHz)"],
-                            label="Lista de Líneas Cuánticas Principales devueltas por `y, lines = asym_rotor(..., lines=True)`"
+                            label="Líneas Cuánticas Principales"
                         )
 
             # =========================================================================
-            # TAB 5: MANUAL DE USUARIO Y GUÍA DE CONTROLES
+            # TAB 5: MANUAL DE USUARIO Y GUÍA DE CONTROLES (OCULTA)
             # =========================================================================
-            with gr.TabItem("📖 5. Manual y Ayuda", id="tab_manual"):
+            with gr.TabItem("📖 5. Manual y Ayuda", id="tab_manual", visible=False):
                 gr.Markdown(
                     r"""
                     ## 📖 Manual de Usuario y Guía de Controles — MELIORA
@@ -2314,9 +2855,9 @@ def build_gradio_app():
                 )
 
             # =========================================================================
-            # TAB 6: ACERCA DE MELIORA Y CRÉDITOS INSTITUCIONALES
+            # TAB 6: ACERCA DE UNTITLED PROJECT Y CRÉDITOS INSTITUCIONALES (OCULTA)
             # =========================================================================
-            with gr.TabItem("ℹ️ 6. Acerca de MELIORA y Créditos", id="tab_about"):
+            with gr.TabItem("ℹ️ 6. Acerca de Untitled Project y Créditos", id="tab_about", visible=False):
                 gr.Markdown(
                     r"""
                     # 🔬 MELIORA (v2.0)
@@ -2589,7 +3130,7 @@ def build_gradio_app():
             outputs=[plot_out, stats_out]
         )
 
-        # Callbacks for Tab 4 (Modo AsymRotor Dr. Mario Delgado-Jaime)
+        # Callbacks for Tab 4 (AsymRotor)
         ar_all_inputs = [
             ar_preset, ar_exp_source, ar_upload_file, ar_plot_style,
             ar_A, ar_B, ar_C, ar_dA, ar_dB, ar_dC,
@@ -2597,10 +3138,12 @@ def build_gradio_app():
             ar_Nu0, ar_Shift, ar_Temp, ar_Th, ar_Ph,
             ar_GW, ar_LW, ar_JMax,
             ar_Unit, ar_SpinAxis, ar_SpinOdd,
-            ar_T2, ar_W2, ar_Int1, ar_Offset
+            ar_T2, ar_W2, ar_Int1, ar_Offset,
+            ar_pct_a_q, ar_pct_b_q, ar_pct_c_q, ar_pct_scope, ar_q_gain, ar_q_subhops_chk,
+            ar_DJ, ar_DJK, ar_DK, ar_dB_Cor, ar_dNu_Cor
         ]
         ar_all_outputs = [
-            ar_plot_out, ar_B, ar_C, ar_dB, ar_dC,
+            ar_plot_out, ar_B, ar_C, ar_dB, ar_dC, ar_Th, ar_Ph,
             ar_report_out, ar_code_out, ar_table_out
         ]
 
@@ -2614,7 +3157,9 @@ def build_gradio_app():
                 ar_GW, ar_LW, ar_JMax,
                 ar_Unit, ar_SpinAxis, ar_SpinOdd,
                 ar_T2, ar_W2, ar_Int1, ar_Offset,
-                ar_planar_chk, ar_oblate_chk
+                ar_planar_chk, ar_oblate_chk,
+                ar_pct_a_q, ar_pct_b_q, ar_pct_c_q, ar_pct_scope, ar_q_gain, ar_q_subhops_chk,
+                ar_DJ, ar_DJK, ar_DK, ar_dB_Cor, ar_dNu_Cor
             ]
         ).then(
             fn=run_asymrotor_mlx_ui,
@@ -2622,17 +3167,67 @@ def build_gradio_app():
             outputs=ar_all_outputs
         )
 
-        for ar_trig in [ar_plot_style, ar_exp_source, ar_planar_chk, ar_oblate_chk]:
+        for ar_trig in [
+            ar_plot_style, ar_exp_source, ar_planar_chk, ar_oblate_chk,
+            ar_pct_a_q, ar_pct_b_q, ar_pct_c_q, ar_pct_scope, ar_q_gain, ar_q_subhops_chk,
+            ar_DJ, ar_DJK, ar_DK, ar_dB_Cor, ar_dNu_Cor
+        ]:
             ar_trig.change(
                 fn=run_asymrotor_mlx_ui,
                 inputs=ar_all_inputs,
                 outputs=ar_all_outputs
             )
 
+        btn_q_leo_opt.click(
+            fn=lambda: (85.0, 15.0, 0.0),
+            inputs=[],
+            outputs=[ar_pct_a_q, ar_pct_b_q, ar_pct_c_q]
+        ).then(
+            fn=run_asymrotor_mlx_ui,
+            inputs=ar_all_inputs,
+            outputs=ar_all_outputs
+        )
+
+        btn_q_base50.click(
+            fn=lambda: (50.0, 50.0, 0.0),
+            inputs=[],
+            outputs=[ar_pct_a_q, ar_pct_b_q, ar_pct_c_q]
+        ).then(
+            fn=run_asymrotor_mlx_ui,
+            inputs=ar_all_inputs,
+            outputs=ar_all_outputs
+        )
+
+        btn_q_pureA.click(
+            fn=lambda: (100.0, 0.0, 0.0),
+            inputs=[],
+            outputs=[ar_pct_a_q, ar_pct_b_q, ar_pct_c_q]
+        ).then(
+            fn=run_asymrotor_mlx_ui,
+            inputs=ar_all_inputs,
+            outputs=ar_all_outputs
+        )
+
+        btn_q_pureB.click(
+            fn=lambda: (0.0, 100.0, 0.0),
+            inputs=[],
+            outputs=[ar_pct_a_q, ar_pct_b_q, ar_pct_c_q]
+        ).then(
+            fn=run_asymrotor_mlx_ui,
+            inputs=ar_all_inputs,
+            outputs=ar_all_outputs
+        )
+
         btn_ar_sim.click(
             fn=run_asymrotor_mlx_ui,
             inputs=ar_all_inputs,
             outputs=ar_all_outputs
+        )
+
+        btn_ar_export.click(
+            fn=export_asymrotor_high_dpi,
+            inputs=ar_all_inputs + [ar_export_format],
+            outputs=[ar_export_file_out]
         )
 
         btn_ar_fit.click(
@@ -2647,30 +3242,21 @@ def build_gradio_app():
             ]
         )
 
-        # Run initial simulations on page load (Tab 1, Tab 2 Auto-Assigner, and Tab 3)
+        # Run initial simulations on page load (active tabs only for fast startup)
         demo.load(
-            fn=simulate_rovibronic_spectrum,
-            inputs=all_sim_inputs,
-            outputs=[plot_out, stats_out]
-        ).then(
-            fn=run_automatic_line_assignment_ui,
-            inputs=asg_inputs,
-            outputs=asg_outputs
-        ).then(
-            fn=run_quantum_3d_tab,
-            inputs=[q_input, q_engine, q_confs, q_s1_exp],
-            outputs=qchem_outputs
-        ).then(
             fn=run_asymrotor_mlx_ui,
             inputs=ar_all_inputs,
             outputs=ar_all_outputs
+        ).then(
+            fn=simulate_rovibronic_spectrum,
+            inputs=all_sim_inputs,
+            outputs=[plot_out, stats_out]
         )
 
         gr.Markdown(
             """
             ---
-            *MELIORA (v2.0) es software científico desarrollado en la División de Ciencias e Ingenierías (DCI-UG, Campus León).*  
-            *Autor: Ing. Miguel Alejandro Díaz Gaytán · Asesores: Dr. Leonardo Álvarez-Valtierra & Dr. Mario Ulises Delgado-Jaime · Apoyo SNII III Dr. Alejandro Gil-Villegas.*
+            *Untitled Project · Espectroscopía Molecular de Alta Resolución*
             """
         )
 

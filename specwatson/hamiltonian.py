@@ -26,9 +26,44 @@ class MoleculeState:
     Delta_K: float = 0.0
     delta_J: float = 0.0
     delta_K: float = 0.0
+
+    # First-order Vibronic Coriolis Coupling parameters for planar tops (e.g. Triphenylene)
+    # C_eff = C_planar * (1 + zeta_coriolis) = AB/(A+B) + delta_C_coriolis
+    zeta_coriolis: float = 0.0
+    delta_C_coriolis: float = 0.0
     
     # Electronic band origin (cm^-1) - typically 0 for ground state
     origin: float = 0.0
+
+    @property
+    def C_planar(self) -> float:
+        """Ideal rigid planar-top axial rotational constant C_planar = A*B / (A + B) (MHz)."""
+        if (self.A + self.B) <= 1e-12:
+            return 0.0
+        return (self.A * self.B) / (self.A + self.B)
+
+    @property
+    def effective_C(self) -> float:
+        """
+        Effective axial rotational constant C_eff incorporating first-order vibronic Coriolis
+        coupling:
+            C_eff = C_planar * (1 + zeta_coriolis) + delta_C_coriolis
+        If self.C already includes the Coriolis shift (C != C_planar), returns self.C directly.
+        """
+        c_pl = self.C_planar
+        if abs(self.delta_C_coriolis) > 1e-9:
+            return c_pl + float(self.delta_C_coriolis)
+        if abs(self.zeta_coriolis) > 1e-9:
+            return c_pl * (1.0 + float(self.zeta_coriolis))
+        return float(self.C)
+
+    @property
+    def effective_zeta_coriolis(self) -> float:
+        """Dimensionless effective Coriolis coupling constant zeta_eff = (C_eff - C_planar) / C_planar."""
+        c_pl = self.C_planar
+        if c_pl <= 1e-12:
+            return 0.0
+        return (self.effective_C - c_pl) / c_pl
 
     @property
     def kappa(self) -> float:
@@ -57,8 +92,13 @@ class MoleculeState:
     @property
     def model_description(self) -> str:
         """Returns human-readable description of the Hamiltonian model in use."""
-        if self.is_rigid_rotor:
+        has_cor = abs(self.effective_zeta_coriolis) > 1e-3
+        if self.is_rigid_rotor and not has_cor:
             return "Rotor Rígido Puro (3 constantes: A, B, C | Sin distorsión centrífuga)"
+        if self.is_rigid_rotor and has_cor:
+            return f"Rotor con Acoplamiento Vibrónico de Coriolis (C_eff = {self.effective_C:.2f} MHz, ζ_eff = {self.effective_zeta_coriolis:+.4f})"
+        if has_cor:
+            return f"Hamiltoniano de Watson Reducción A + Acoplamiento de Coriolis (C_eff = {self.effective_C:.2f} MHz, ζ_eff = {self.effective_zeta_coriolis:+.4f})"
         return "Hamiltoniano Efectivo de Watson Reducción A (con distorsión centrífuga cuártica)"
 
     @property
@@ -111,7 +151,7 @@ class AsymmetricRotorHamiltonian:
         
         A = self.state.A
         B = self.state.B
-        C = self.state.C
+        C = self.state.effective_C
         
         dJ = self.state.Delta_J
         dJK = self.state.Delta_JK

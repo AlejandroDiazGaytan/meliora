@@ -39,6 +39,43 @@ def planar_top_c(A: float, B: float) -> float:
     return (A * B) / (A + B)
 
 
+def coriolis_effective_c(
+    A: float,
+    B: float,
+    C_current: Optional[float] = None,
+    zeta_eff: Optional[float] = None,
+    delta_C_coriolis: Optional[float] = None,
+) -> Dict[str, float]:
+    """
+    First-order Vibronic Coriolis Coupling model for planar symmetric/quasi-symmetric tops:
+        H_Coriolis = -2 * C_plano * zeta_eff * J_c * l_c
+    which renormalizes the effective axial rotational constant away from the strict planar
+    limit C_plano = A*B/(A+B), unlocking the collapsed 2(B - 2C) Wang splittings:
+        C_eff = C_plano * (1 + zeta_eff) = C_plano + delta_C_coriolis
+    Returns dict with keys: C_plano, C_eff, delta_C_coriolis, zeta_eff.
+    """
+    c_pl = planar_top_c(A, B)
+    if delta_C_coriolis is not None:
+        dc = float(delta_C_coriolis)
+        c_ef = c_pl + dc
+    elif zeta_eff is not None:
+        c_ef = c_pl * (1.0 + float(zeta_eff))
+        dc = c_ef - c_pl
+    elif C_current is not None:
+        c_ef = float(C_current)
+        dc = c_ef - c_pl
+    else:
+        c_ef = c_pl
+        dc = 0.0
+    z_ef = (dc / c_pl) if c_pl > 1e-12 else 0.0
+    return {
+        "C_plano": c_pl,
+        "C_eff": c_ef,
+        "delta_C_coriolis": dc,
+        "zeta_eff": z_ef,
+    }
+
+
 def ray_kappa(A: float, B: float, C: float) -> float:
     """
     Ray's asymmetry parameter:
@@ -104,10 +141,16 @@ def _cg_matrix(Jl: int, Ju: int, q: int) -> np.ndarray:
     return M
 
 
-def rotor_levels(J: int, A: float, B: float, C: float) -> Dict[str, np.ndarray]:
+def rotor_levels(
+    J: int, A: float, B: float, C: float,
+    DJ: float = 0.0, DJK: float = 0.0, DK: float = 0.0
+) -> Dict[str, np.ndarray]:
     """
-    Levels of one J block of H = A Ja^2 + B Jb^2 + C Jc^2 in representation I^r,
-    split into the four Wang symmetry blocks (K even/odd, sym/anti) so that every
+    Levels of one J block of the effective rotational Hamiltonian in representation I^r:
+        H = A Ja^2 + B Jb^2 + C_eff Jc^2 - DJ J^2(J+1)^2 - DJK J(J+1)Ja^2 - DK Ja^4
+    where C_eff incorporates first-order Coriolis coupling (C_eff = C_plano + delta_C_coriolis)
+    and (DJ, DJK, DK) are Watson's quartic centrifugal distortion parameters.
+    Split into the four Wang symmetry blocks (K even/odd, sym/anti) so that every
     eigenvector has exact symmetry even when K doublets are degenerate to machine precision.
     """
     K = np.arange(-J, J + 1, dtype=int)
@@ -115,7 +158,13 @@ def rotor_levels(J: int, A: float, B: float, C: float) -> Dict[str, np.ndarray]:
     n = 2 * J + 1
     jj1 = float(J * (J + 1))
 
-    H = np.diag(A * (Kf ** 2) + 0.5 * (B + C) * (jj1 - Kf ** 2))
+    H = np.diag(
+        A * (Kf ** 2)
+        + 0.5 * (B + C) * (jj1 - Kf ** 2)
+        - float(DJ) * (jj1 ** 2)
+        - float(DJK) * jj1 * (Kf ** 2)
+        - float(DK) * (Kf ** 4)
+    )
     if J >= 1:
         k = Kf[:-2]
         v = 0.25 * (B - C) * np.sqrt((jj1 - k * (k + 1.0)) * (jj1 - (k + 1.0) * (k + 2.0)))
@@ -184,23 +233,25 @@ def rotor_levels(J: int, A: float, B: float, C: float) -> Dict[str, np.ndarray]:
 def asym_rotor_lines(
     A: float, B: float, C: float,
     Au: float, Bu: float, Cu: float,
-    JMax: int
+    JMax: int,
+    DJ: float = 0.0, DJK: float = 0.0, DK: float = 0.0
 ) -> Dict[str, np.ndarray]:
     """
     Computes every transition J'' <= JMax with its line strength S,
-    cached by rotational constants (A, B, C, Au, Bu, Cu, JMax).
+    cached by rotational constants (A, B, C, Au, Bu, Cu, JMax, DJ, DJK, DK).
     """
     key = (
         round(float(A), 9), round(float(B), 9), round(float(C), 9),
         round(float(Au), 9), round(float(Bu), 9), round(float(Cu), 9),
-        int(JMax)
+        int(JMax),
+        round(float(DJ), 11), round(float(DJK), 11), round(float(DK), 11),
     )
     if key in _ASYM_ROTOR_CACHE:
         _ASYM_ROTOR_CACHE.move_to_end(key, last=False)
         return _ASYM_ROTOR_CACHE[key]
 
-    Lo = [rotor_levels(J, A, B, C) for J in range(JMax + 1)]
-    Hi = [rotor_levels(J, Au, Bu, Cu) for J in range(JMax + 2)]
+    Lo = [rotor_levels(J, A, B, C, DJ=DJ, DJK=DJK, DK=DK) for J in range(JMax + 1)]
+    Hi = [rotor_levels(J, Au, Bu, Cu, DJ=DJ * 0.96, DJK=DJK * 0.96, DK=DK * 0.96) for J in range(JMax + 2)]
 
     Scut = 1e-12
     NuC, SC, TC, ElC, OddC, LabC = [], [], [], [], [], []
@@ -312,7 +363,10 @@ def asym_rotor(
     SpinOdd: float = 1.0,
     T2: float = 0.0,
     W2: float = 0.0,
-    lines: bool = False
+    lines: bool = False,
+    DJ: float = 0.0,
+    DJK: float = 0.0,
+    DK: float = 0.0,
 ) -> Union[np.ndarray, Tuple[np.ndarray, Dict[str, np.ndarray]]]:
     """
     Rotationally resolved band of an asymmetric top (rigid rotor) with unit area.
@@ -388,7 +442,7 @@ def asym_rotor(
         JMax = int(10 * np.ceil(np.sqrt(14.0 * kTm / min(float(C), Up[2])) / 10.0))
     JMax = min(int(round(JMax)), 400)
 
-    Lst = asym_rotor_lines(float(A), float(B), float(C), Up[0], Up[1], Up[2], JMax)
+    Lst = asym_rotor_lines(float(A), float(B), float(C), Up[0], Up[1], Up[2], JMax, DJ=DJ, DJK=DJK, DK=DK)
     if Lst["Nu"].size == 0:
         return (y, empty_lines) if lines else y
 
@@ -926,18 +980,23 @@ def asym_rotor_watson(
     dB_Cor: float = -0.65493,
     dNu_Cor: float = -1855.43,
     AlphaHW: float = 0.0,
+    Theta_Q: Optional[float] = None,
+    Phi_Q: Optional[float] = None,
+    resolve_Q_subhops: bool = True,
+    q_gain: float = 1.0,
     lines: bool = False,
 ) -> Union[np.ndarray, Tuple[np.ndarray, Dict[str, np.ndarray]]]:
     """
-    Python counterpart of `AsymRotor_Watson.m` (Option B).
+    Python counterpart of `AsymRotor_Watson.m`.
     Evaluates the full rovibronic contour incorporating Watson centrifugal distortion,
     Coriolis coupling across the 4 sub-branches (pP, rP, pQ+rQ, rR), laser mode-hop
-    calibration, and optional Herman-Wallis intensity interference.
+    calibration, and Q-branch selection-rule modulation (`Theta_Q`, `Phi_Q`, `q_gain`).
     """
     x_arr = np.asarray(x, dtype=float)
     y_pos, lines_out = asym_rotor(
         x_arr, A, B, C, dA, dB, dC, Nu0,
-        Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2, lines=True
+        Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2,
+        lines=True, DJ=DJ, DJK=DJK, DK=DK
     )
 
     if abs(float(dB_Cor)) > 1e-9 or abs(float(dNu_Cor)) > 1e-9:
@@ -947,29 +1006,33 @@ def asym_rotor_watson(
         dC_pP = float(dC) - 0.37630
         Nu0_pP = float(Nu0) + float(dNu_Cor)
 
+        th_q = float(Theta_Q) if Theta_Q is not None else 22.79
+        ph_q = float(Phi_Q) if Phi_Q is not None else float(Phi)
+
         y_pP = asym_rotor(
             x_arr, A, B, C_pP, dA_pP, dB_pP, dC_pP, Nu0_pP,
-            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2
+            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2,
+            DJ=DJ, DJK=DJK, DK=DK
         )
         y_farP1 = asym_rotor(
             x_arr, A, B, C, dA, dB, dC, float(Nu0) + 1555.0,
-            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2
+            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2,
+            DJ=DJ, DJK=DJK, DK=DK
         )
         y_farP2 = asym_rotor(
             x_arr, A, B, C, dA, dB, dC, float(Nu0) - 290.0,
-            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2
+            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2,
+            DJ=DJ, DJK=DJK, DK=DK
         )
         y_rP = asym_rotor(
             x_arr, A, B, C, dA, dB, dC, float(Nu0) - 1185.0,
-            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2
-        )
-        y_Q = asym_rotor(
-            x_arr, A, B, C, dA, dB, dC, float(Nu0) - 1592.0,
-            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2
+            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2,
+            DJ=DJ, DJK=DJK, DK=DK
         )
         y_farR = asym_rotor(
             x_arr, A, B, C, dA, dB, dC, float(Nu0) - 25.0,
-            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2
+            Trot, Theta, Phi, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2,
+            DJ=DJ, DJK=DJK, DK=DK
         )
 
         rel_g = (x_arr - float(Nu0)) / 1000.0
@@ -977,16 +1040,48 @@ def asym_rotor_watson(
         w_fP2 = ((rel_g >= -21.0) & (rel_g < -18.0)).astype(float)
         w_pP = ((rel_g >= -18.0) & (rel_g < -9.2)).astype(float)
         w_rP = ((rel_g >= -9.2) & (rel_g < -2.6)).astype(float)
-        w_Q = ((rel_g >= -2.6) & (rel_g < +0.14)).astype(float)
         w_rR = ((rel_g >= +0.14) & (rel_g < +11.8)).astype(float)
         w_fR = (rel_g >= +11.8).astype(float)
+
+        if resolve_Q_subhops:
+            y_Q1 = asym_rotor(
+                x_arr, A, B, C, dA, dB, dC, float(Nu0) - 2110.0,
+                Trot, th_q, ph_q, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2,
+                DJ=DJ, DJK=DJK, DK=DK
+            )
+            y_Q2 = asym_rotor(
+                x_arr, A, B, C, dA, dB, dC, float(Nu0) - 2510.0,
+                Trot, th_q, ph_q, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2,
+                DJ=DJ, DJK=DJK, DK=DK
+            )
+            y_Q3 = asym_rotor(
+                x_arr, A, B, C, dA, dB, dC, float(Nu0) - 1590.0,
+                Trot, th_q, ph_q, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2,
+                DJ=DJ, DJK=DJK, DK=DK
+            )
+            w_Q1 = ((rel_g >= -2.6) & (rel_g < -1.90)).astype(float)
+            w_Q2 = ((rel_g >= -1.90) & (rel_g < -1.02)).astype(float)
+            w_Q3 = ((rel_g >= -1.02) & (rel_g < +0.14)).astype(float)
+            y_Q_comb = float(q_gain) * (
+                0.7685 * (y_Q1 * w_Q1)
+                + 0.7420 * (y_Q2 * w_Q2)
+                + 0.8140 * (y_Q3 * w_Q3)
+            )
+        else:
+            y_Q = asym_rotor(
+                x_arr, A, B, C, dA, dB, dC, float(Nu0) - 1592.0,
+                Trot, th_q, ph_q, GW, LW, JMax, Unit, SpinAxis, SpinOdd, T2, W2,
+                DJ=DJ, DJK=DJK, DK=DK
+            )
+            w_Q = ((rel_g >= -2.6) & (rel_g < +0.14)).astype(float)
+            y_Q_comb = float(q_gain) * 0.784272 * (y_Q * w_Q)
 
         y = (
             1.500519 * (y_farP1 * w_fP1)
             + 1.413507 * (y_farP2 * w_fP2)
             + 0.899410 * (y_pP * w_pP)
             + 0.658169 * (y_rP * w_rP)
-            + 0.784272 * (y_Q * w_Q)
+            + y_Q_comb
             + 1.000000 * (y_pos * w_rR)
             + 0.821170 * (y_farR * w_fR)
         )
